@@ -498,6 +498,14 @@
         <button onclick="testAccess()" style="margin-top:10px;width:100%;background:none;border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem">🔍 Test Spotify toegang</button>
     </div>
 
+    <div class="card" id="playlist-card" style="display:none">
+        <div class="results-header">
+            <div class="card-title" id="playlist-card-title"></div>
+            <button class="btn-sm" id="btn-save-order" style="display:none;border-color:var(--green);color:var(--green)" onclick="savePlaylistOrder()">Volgorde opslaan</button>
+        </div>
+        <div class="tracks" id="playlist-tracks-list"></div>
+    </div>
+
 </main>
 </div>
 
@@ -664,8 +672,13 @@ function onPlaylistSelect() {
     if (sel.value === '__new__') {
         field.style.display = 'block';
         document.getElementById('save-name').focus();
+        document.getElementById('playlist-card').style.display = 'none';
+    } else if (sel.value) {
+        field.style.display = 'none';
+        loadPlaylistContents(sel.value);
     } else {
         field.style.display = 'none';
+        document.getElementById('playlist-card').style.display = 'none';
     }
 }
 
@@ -792,7 +805,7 @@ function onDragStart(e, i) {
 
 function onDragOver(e, i) {
     e.preventDefault();
-    document.querySelectorAll('.track').forEach((el, idx) =>
+    document.querySelectorAll('#tracks-list .track').forEach((el, idx) =>
         el.classList.toggle('drag-over', idx === i));
 }
 
@@ -805,8 +818,134 @@ function onDrop(e, i) {
 }
 
 function onDragEnd() {
-    document.querySelectorAll('.track').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('#tracks-list .track').forEach(el => el.classList.remove('drag-over'));
     _dragIdx = null;
+}
+
+// ── Playlist beheer drag & drop ──
+
+let _plDragIdx = null;
+let playlistTracks = [];
+let _currentPlaylistId = null;
+
+function onPLDragStart(e, i) { _plDragIdx = i; e.dataTransfer.effectAllowed = 'move'; }
+
+function onPLDragOver(e, i) {
+    e.preventDefault();
+    document.querySelectorAll('#playlist-tracks-list .track').forEach((el, idx) =>
+        el.classList.toggle('drag-over', idx === i));
+}
+
+function onPLDrop(e, i) {
+    e.preventDefault();
+    if (_plDragIdx === null || _plDragIdx === i) return;
+    const moved = playlistTracks.splice(_plDragIdx, 1)[0];
+    playlistTracks.splice(i, 0, moved);
+    document.getElementById('btn-save-order').style.display = 'inline-block';
+    renderPlaylistTracks();
+}
+
+function onPLDragEnd() {
+    document.querySelectorAll('#playlist-tracks-list .track').forEach(el => el.classList.remove('drag-over'));
+    _plDragIdx = null;
+}
+
+async function loadPlaylistContents(playlistId) {
+    _currentPlaylistId = playlistId;
+    const card  = document.getElementById('playlist-card');
+    const list  = document.getElementById('playlist-tracks-list');
+    const title = document.getElementById('playlist-card-title');
+    const sel   = document.getElementById('playlist-select');
+    const name  = sel.options[sel.selectedIndex]?.text || '';
+
+    card.style.display = 'block';
+    document.getElementById('btn-save-order').style.display = 'none';
+    title.textContent = name;
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px 0">Laden…</div>';
+
+    playlistTracks = [];
+    try {
+        let url = `/playlists/${playlistId}/tracks?limit=100`;
+        while (url) {
+            const data = await api(url);
+            playlistTracks.push(...(data.items || []).filter(item => item?.track?.uri));
+            url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
+        }
+        renderPlaylistTracks();
+    } catch (e) {
+        list.innerHTML = `<div style="color:#e06060;font-size:0.85rem;padding:8px 0">Laden mislukt: ${esc(e.message)}</div>`;
+    }
+}
+
+function renderPlaylistTracks() {
+    const list  = document.getElementById('playlist-tracks-list');
+    const title = document.getElementById('playlist-card-title');
+    const sel   = document.getElementById('playlist-select');
+    const name  = sel.options[sel.selectedIndex]?.text || '';
+    title.textContent = `${name} (${playlistTracks.length})`;
+
+    if (!playlistTracks.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px 0">Geen nummers.</div>';
+        return;
+    }
+    list.innerHTML = playlistTracks.map((item, i) => {
+        const t       = item.track;
+        const art     = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
+        const artists = t.artists.map(a => esc(a.name)).join(', ');
+        const dur     = fmtDur(t.duration_ms);
+        return `<div class="track" draggable="true"
+            ondragstart="onPLDragStart(event,${i})"
+            ondragover="onPLDragOver(event,${i})"
+            ondrop="onPLDrop(event,${i})"
+            ondragend="onPLDragEnd()">
+            <span class="drag-handle">⠿</span>
+            <span class="track-num">${i + 1}</span>
+            ${art ? `<img class="track-art" src="${esc(art)}" alt="">` : `<div class="track-art">🎵</div>`}
+            <div class="track-info">
+                <div class="track-name">${esc(t.name)}</div>
+                <div class="track-artist">${artists}</div>
+            </div>
+            <span class="track-dur">${dur}</span>
+            <button class="btn-remove" data-i="${i}" onclick="removeFromPlaylist(${i})" title="Verwijder">✕</button>
+        </div>`;
+    }).join('');
+}
+
+async function removeFromPlaylist(i) {
+    const item = playlistTracks[i];
+    try {
+        await api(`/playlists/${_currentPlaylistId}/tracks`, {
+            method: 'DELETE',
+            body: JSON.stringify({ tracks: [{ uri: item.track.uri }] }),
+        });
+        playlistTracks.splice(i, 1);
+        renderPlaylistTracks();
+    } catch (e) {
+        toast('Verwijderen mislukt: ' + e.message, 'error');
+    }
+}
+
+async function savePlaylistOrder() {
+    const btn = document.getElementById('btn-save-order');
+    btn.textContent = 'Opslaan…';
+    try {
+        const uris = playlistTracks.map(item => item.track.uri);
+        await api(`/playlists/${_currentPlaylistId}/tracks`, {
+            method: 'PUT',
+            body: JSON.stringify({ uris: uris.slice(0, 100) }),
+        });
+        for (let i = 100; i < uris.length; i += 100) {
+            await api(`/playlists/${_currentPlaylistId}/tracks`, {
+                method: 'POST',
+                body: JSON.stringify({ uris: uris.slice(i, i + 100) }),
+            });
+        }
+        btn.style.display = 'none';
+        toast('✓ Volgorde opgeslagen!', 'success');
+    } catch (e) {
+        toast('Opslaan mislukt: ' + e.message, 'error');
+        btn.textContent = 'Volgorde opslaan';
+    }
 }
 
 // ── Duplicatencheck ──
@@ -976,6 +1115,7 @@ async function savePlaylist() {
         const skipMsg = skipped > 0 ? ` (${skipped} dubbel overgeslagen)` : '';
         toast(`✓ ${toAdd.length} nummers opgeslagen in "${playlistName}"!${skipMsg}`, 'success');
         loadPlaylists();
+        if (choice !== '__new__') loadPlaylistContents(choice);
     } catch (e) {
         toast('Opslaan mislukt: ' + e.message, 'error');
     } finally {
