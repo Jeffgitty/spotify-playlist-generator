@@ -475,9 +475,13 @@
         <div class="save-bar">
             <div class="field">
                 <label>Kies een playlist</label>
-                <select id="playlist-select"><option value="">Playlists laden…</option></select>
+                <select id="playlist-select" onchange="onPlaylistSelect()"><option value="">Laden…</option></select>
             </div>
-            <button class="btn-save" id="btn-save" onclick="savePlaylist()">Toevoegen aan playlist</button>
+            <button class="btn-save" id="btn-save" onclick="savePlaylist()">Opslaan</button>
+        </div>
+        <div class="field" id="new-name-field" style="display:none;margin-top:12px">
+            <label>Naam nieuwe playlist</label>
+            <input type="text" id="save-name" placeholder="Playlist naam">
         </div>
         <textarea id="debug-out" style="display:none;margin-top:14px;width:100%;background:var(--surface2);border:1px solid #d04040;color:#e06060;padding:10px;border-radius:8px;font-size:0.8rem;font-family:monospace;resize:none;height:100px" readonly></textarea>
         <button onclick="testAccess()" style="margin-top:10px;width:100%;background:none;border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem">🔍 Test Spotify toegang</button>
@@ -628,16 +632,24 @@ async function loadPlaylists() {
         let url = '/me/playlists?limit=50';
         while (url) {
             const data = await api(url);
-            playlists.push(...data.items);
+            playlists.push(...(data.items || []).filter(Boolean));
             url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
         }
-        sel.innerHTML = playlists.map(p =>
-            `<option value="${p.id}">${p.name} (${p.tracks.total} nrs)</option>`
-        ).join('');
+        sel.innerHTML =
+            '<option value="__new__">+ Nieuwe playlist aanmaken</option>' +
+            '<option disabled>──────────────────</option>' +
+            playlists.map(p =>
+                `<option value="${p.id}">${p.name}${p.tracks?.total != null ? ` (${p.tracks.total})` : ''}</option>`
+            ).join('');
     } catch (e) {
-        sel.innerHTML = '<option value="">Laden mislukt</option>';
-        toast('Playlists laden mislukt: ' + e.message, 'error');
+        sel.innerHTML = '<option value="">Laden mislukt: ' + e.message + '</option>';
     }
+}
+
+function onPlaylistSelect() {
+    const sel = document.getElementById('playlist-select');
+    document.getElementById('new-name-field').style.display =
+        sel.value === '__new__' ? 'block' : 'none';
 }
 
 // ── Parser ──
@@ -852,15 +864,28 @@ async function savePlaylist() {
     if (!foundTracks.length) { toast('Geen nummers om op te slaan.', 'error'); return; }
 
     const sel = document.getElementById('playlist-select');
-    const playlistId = sel.value;
-    if (!playlistId) { toast('Kies eerst een playlist.', 'error'); return; }
-    const playlistName = sel.options[sel.selectedIndex].text;
+    const choice = sel.value;
+    if (!choice) { toast('Kies eerst een playlist.', 'error'); return; }
 
     const btn = document.getElementById('btn-save');
     btn.disabled = true;
-    btn.textContent = 'Toevoegen...';
+    btn.textContent = 'Opslaan...';
 
     try {
+        let playlistId, playlistName;
+
+        if (choice === '__new__') {
+            playlistName = document.getElementById('save-name').value.trim() || 'Mijn Playlist';
+            const pl = await api('/me/playlists', {
+                method: 'POST',
+                body: JSON.stringify({ name: playlistName, public: true }),
+            });
+            playlistId   = pl.id;
+        } else {
+            playlistId   = choice;
+            playlistName = sel.options[sel.selectedIndex].text;
+        }
+
         const uris = foundTracks.map(e => e.track.uri);
         for (let i = 0; i < uris.length; i += 100) {
             await api(`/playlists/${playlistId}/items`, {
@@ -868,13 +893,14 @@ async function savePlaylist() {
                 body: JSON.stringify({ uris: uris.slice(i, i + 100) }),
             });
         }
-        toast(`✓ ${foundTracks.length} nummers toegevoegd aan "${playlistName}"!`, 'success');
+
+        toast(`✓ ${foundTracks.length} nummers opgeslagen in "${playlistName}"!`, 'success');
         loadPlaylists();
     } catch (e) {
         toast('Opslaan mislukt: ' + e.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Toevoegen aan playlist';
+        btn.textContent = 'Opslaan';
     }
 }
 
