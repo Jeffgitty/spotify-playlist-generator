@@ -763,10 +763,11 @@ async function generate() {
     btn.innerHTML = '<span class="spinner"></span>Genereren...';
 
     try {
-        // Build search queries: one per genre, optionally combined with keyword
+        // genre: filter only works for artist searches, not track searches.
+        // Use genre name as keyword + year filter instead.
         const queries = selectedGenres.map(g => {
-            let q = `genre:${g}`;
-            if (keyword) q += ` ${keyword}`;
+            const term = g.replace(/-/g, ' '); // hip-hop → hip hop
+            let q = keyword ? `${term} ${keyword}` : term;
             q += ` year:${yearFrom}-${yearTo}`;
             return q;
         });
@@ -774,7 +775,7 @@ async function generate() {
         // Fetch in parallel with random offsets for variety
         const fetches = queries.flatMap(q => [0, 1, 2].map(() => {
             const offset = Math.floor(Math.random() * 50);
-            return api(`/search?q=${encodeURIComponent(q)}&type=track&limit=20&offset=${offset}&market=from_token`);
+            return api(`/search?q=${encodeURIComponent(q)}&type=track&limit=20&offset=${offset}`);
         }));
 
         const settled = await Promise.allSettled(fetches);
