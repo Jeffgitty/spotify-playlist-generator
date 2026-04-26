@@ -477,7 +477,8 @@
             </div>
             <button class="btn-save" id="btn-save" onclick="savePlaylist()">Opslaan in Spotify</button>
         </div>
-        <textarea id="debug-out" style="display:none;margin-top:14px;width:100%;background:var(--surface2);border:1px solid #d04040;color:#e06060;padding:10px;border-radius:8px;font-size:0.8rem;font-family:monospace;resize:none;height:80px" readonly></textarea>
+        <textarea id="debug-out" style="display:none;margin-top:14px;width:100%;background:var(--surface2);border:1px solid #d04040;color:#e06060;padding:10px;border-radius:8px;font-size:0.8rem;font-family:monospace;resize:none;height:100px" readonly></textarea>
+        <button onclick="testAccess()" style="margin-top:10px;width:100%;background:none;border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem">🔍 Test Spotify toegang</button>
     </div>
 
 </main>
@@ -777,6 +778,39 @@ function fmtDur(ms) {
 }
 
 // ── Save playlist ──
+
+async function testAccess() {
+    const token = await getToken();
+    const out = document.getElementById('debug-out');
+    out.style.display = 'block';
+    out.value = 'Testen...';
+
+    const tests = [
+        ['GET /me', `https://api.spotify.com/v1/me`],
+        ['GET /me/playlists', `https://api.spotify.com/v1/me/playlists?limit=1`],
+        ['POST playlist', `https://api.spotify.com/v1/users/${userProfile.id}/playlists`],
+    ];
+
+    let results = '';
+    for (const [label, url] of tests) {
+        const isPost = label.startsWith('POST');
+        const res = await fetch(url, {
+            method: isPost ? 'POST' : 'GET',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: isPost ? JSON.stringify({ name: 'test', public: false }) : undefined,
+        });
+        const data = await res.json().catch(() => ({}));
+        results += `${label}: ${res.status} ${data.error?.message || (res.ok ? 'OK' : '')}\n`;
+        if (isPost && res.ok) {
+            // Delete the test playlist immediately
+            await fetch(`https://api.spotify.com/v1/playlists/${data.id}/followers`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            }).catch(() => {});
+        }
+    }
+    out.value = results;
+}
 
 async function savePlaylist() {
     if (!foundTracks.length) { toast('Geen nummers om op te slaan.', 'error'); return; }
