@@ -654,8 +654,9 @@ async function loadPlaylists() {
             playlists.push(...(data.items || []).filter(Boolean));
             url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
         }
-        const owned    = playlists.filter(p => p.owner?.id === userProfile?.id);
-        const followed = playlists.filter(p => p.owner?.id !== userProfile?.id);
+        const myId     = userProfile?.id;
+        const owned    = playlists.filter(p => !myId || !p.owner?.id || p.owner.id === myId);
+        const followed = playlists.filter(p =>  myId &&  p.owner?.id && p.owner.id !== myId);
         sel.innerHTML =
             '<option value="__new__">+ Nieuwe playlist aanmaken</option>' +
             (owned.length    ? '<option disabled>── Jouw playlists ──</option>'    + owned.map(p    => `<option value="${p.id}">${p.name}</option>`).join('') : '') +
