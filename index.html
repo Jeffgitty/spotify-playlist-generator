@@ -179,7 +179,7 @@
             margin-bottom: 7px;
         }
 
-        input[type="text"], select {
+        input[type="text"], input[type="number"], select {
             width: 100%;
             background: var(--surface2);
             border: 1px solid var(--border);
@@ -542,9 +542,9 @@
             <div class="field" style="grid-column: span 2">
                 <label>Jaartal</label>
                 <div class="year-range">
-                    <input type="number" id="gen-year-from" placeholder="Van (bijv. 1980)" min="1900" max="2025">
+                    <input type="number" id="gen-year-from" placeholder="Van" min="1900" max="2025">
                     <span>–</span>
-                    <input type="number" id="gen-year-to" placeholder="Tot (bijv. 1989)" min="1900" max="2025">
+                    <input type="number" id="gen-year-to" placeholder="Tot" min="1900" max="2025">
                 </div>
             </div>
             <div class="field" style="grid-column: span 2">
