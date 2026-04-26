@@ -332,6 +332,23 @@
         }
         .btn-swap:hover { color: var(--green); }
 
+        .btn-preview, .btn-regen {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+            padding: 3px 6px;
+            border-radius: 4px;
+            transition: color 0.12s;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .btn-preview:hover, .btn-regen:hover { color: var(--green); }
+        .btn-preview.playing { color: var(--green); }
+        .btn-preview.no-preview { opacity: 0.25; cursor: not-allowed; }
+        .btn-regen:disabled { opacity: 0.4; cursor: not-allowed; }
+
         .track-swap {
             background: var(--surface3);
             border-radius: 9px;
@@ -1154,6 +1171,83 @@ async function parseAndSearch() {
     document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ── Preview ──
+
+const _audio = new Audio();
+let _playingIdx = null;
+
+function togglePreview(i) {
+    if (_playingIdx === i) {
+        _audio.pause();
+        _playingIdx = null;
+    } else {
+        _audio.pause();
+        _audio.src = foundTracks[i].track.preview_url;
+        _audio.play();
+        _playingIdx = i;
+        _audio.onended = () => { _playingIdx = null; updatePreviewBtns(); };
+    }
+    updatePreviewBtns();
+}
+
+function updatePreviewBtns() {
+    document.querySelectorAll('.btn-preview').forEach(btn => {
+        const i = parseInt(btn.dataset.i);
+        const playing = i === _playingIdx;
+        btn.classList.toggle('playing', playing);
+        if (!btn.classList.contains('no-preview')) btn.textContent = playing ? '⏸' : '▶';
+    });
+}
+
+// ── Hergenereer via AI ──
+
+let _lastGenParams = null;
+
+async function regenTrack(i) {
+    const entry = foundTracks[i];
+    const t     = entry.track;
+    const btn   = document.querySelector(`[data-regen="${i}"]`);
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+    try {
+        const p = _lastGenParams;
+        const lines = ['Suggest ONE replacement song.'];
+        if (p?.genre)                  lines.push(`Genre: ${p.genre}`);
+        if (p?.yearFrom || p?.yearTo)  lines.push(`Year range: ${p.yearFrom || '1900'}–${p.yearTo || '2025'}`);
+        if (p?.theme)                  lines.push(`Mood/theme: ${p.theme}`);
+        if (p?.lang)                   lines.push(`Language: ${p.lang}`);
+        if (p?.tempo)                  lines.push(`Tempo: ${p.tempo}`);
+        if (p?.artist)                 lines.push(`In the style of: ${p.artist}`);
+        lines.push(`Do NOT suggest: "${t.name}" by ${t.artists[0]?.name || ''}`);
+        const others = foundTracks.filter((_, j) => j !== i)
+            .map(e => `"${e.track.name}"`).join(', ');
+        if (others) lines.push(`Also avoid these already in the list: ${others}`);
+        lines.push('Return ONLY: Artist - Song Title');
+
+        const res = await fetch('https://text.pollinations.ai/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: lines.join('\n') }], seed: Math.floor(Math.random() * 99999) }),
+        });
+        if (!res.ok) throw new Error(`AI fout: ${res.status}`);
+        let content = await res.text();
+        try { const j = JSON.parse(content); content = j.choices?.[0]?.message?.content || content; } catch {}
+
+        const parsed = parseTracklist(content);
+        if (!parsed.length) throw new Error('AI gaf geen herkenbaar nummer terug');
+
+        const newTrack = await searchTrack(parsed[0]);
+        if (!newTrack) throw new Error('Nummer niet gevonden op Spotify');
+
+        foundTracks[i] = { track: newTrack, original: entry.original };
+        renderResults();
+        toast(`✓ Vervangen door "${newTrack.name}"`, 'success');
+    } catch (e) {
+        toast('Hergenereren mislukt: ' + e.message, 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '↺'; }
+    }
+}
+
 // ── AI Generator (Pollinations.ai) ──
 
 async function generateWithAI() {
@@ -1165,6 +1259,8 @@ async function generateWithAI() {
     const lang     = document.getElementById('gen-lang').value;
     const tempo    = document.getElementById('gen-tempo').value;
     const count    = Math.min(100, Math.max(1, parseInt(document.getElementById('gen-count').value) || 20));
+
+    _lastGenParams = { genre, yearFrom, yearTo, theme, artist: document.getElementById('gen-artist').value.trim(), lang, tempo };
 
     const lines = [];
     lines.push(`Generate a playlist of exactly ${count} songs.`);
@@ -1448,6 +1544,8 @@ function renderResults(notFound = []) {
             </div>
             ${isDup ? '<span class="track-dup-badge">dubbel</span>' : ''}
             <span class="track-dur">${dur}</span>
+            <button class="btn-preview${t.preview_url ? '' : ' no-preview'}" data-i="${i}" onclick="${t.preview_url ? `togglePreview(${i})` : ''}" title="${t.preview_url ? 'Preview' : 'Geen preview'}">▶</button>
+            <button class="btn-regen" data-regen="${i}" onclick="regenTrack(${i})" title="Hergenereer via AI">↺</button>
             <button class="btn-swap" onclick="openSwap(${i})" title="Wissel nummer">↩</button>
             <button class="btn-remove" data-i="${i}" onclick="removeTrack(this.dataset.i)" title="Verwijder">✕</button>
         </div>
