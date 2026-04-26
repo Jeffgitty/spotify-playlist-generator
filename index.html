@@ -781,16 +781,22 @@ async function savePlaylist() {
 
     try {
         const grantedScopes = localStorage.getItem('sp_scopes') || '';
-        const hasScope = grantedScopes.includes('playlist-modify');
-        if (!hasScope) {
-            toast(`Geen playlist-rechten. Log opnieuw in. (scopes: ${grantedScopes || 'leeg'})`, 'error');
+        const token = await getToken();
+
+        // Raw fetch so we can see the full Spotify response
+        const rawRes = await fetch(`https://api.spotify.com/v1/users/${userProfile.id}/playlists`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, public: true }),
+        });
+        const rawData = await rawRes.json();
+
+        if (!rawRes.ok) {
+            toast(`DEBUG — status:${rawRes.status} msg:${rawData.error?.message} scopes:${grantedScopes} uid:${userProfile.id}`, 'error');
             btn.disabled = false; btn.textContent = 'Opslaan in Spotify'; return;
         }
 
-        const playlist = await api(`/users/${encodeURIComponent(userProfile.id)}/playlists`, {
-            method: 'POST',
-            body: JSON.stringify({ name, description: 'Gegenereerd met PlaylistGen', public: true }),
-        });
+        const playlist = rawData;
 
         const uris = foundTracks.map(e => e.track.uri);
         for (let i = 0; i < uris.length; i += 100) {
