@@ -414,6 +414,7 @@
         <img id="user-avatar" src="" alt="" style="display:none">
         <span class="user-name" id="user-name"></span>
         <button class="btn-sm" onclick="logout()">Uitloggen</button>
+        <button class="btn-sm" onclick="forceReconnect()" style="border-color:#d08060;color:#d08060">↺ Herverbinden</button>
     </div>
 </header>
 
@@ -574,11 +575,16 @@ async function getToken() {
 }
 
 function logout() {
-    ['sp_token','sp_expires','sp_refresh'].forEach(k => localStorage.removeItem(k));
+    ['sp_token','sp_expires','sp_refresh','sp_scopes','pkce_v'].forEach(k => localStorage.removeItem(k));
     userProfile = null;
     document.getElementById('app-screen').style.display   = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('user-info').style.display    = 'none';
+}
+
+async function forceReconnect() {
+    logout();
+    await login();
 }
 
 // ── Spotify API ──
