@@ -772,12 +772,13 @@ async function generate() {
         });
 
         // Fetch in parallel with random offsets for variety
-        const fetches = queries.flatMap(q => [0, 1, 2].map(i => {
-            const offset = Math.floor(Math.random() * 80);
-            return api(`/search?q=${encodeURIComponent(q)}&type=track&limit=50&offset=${offset}&market=from_token`);
+        const fetches = queries.flatMap(q => [0, 1, 2].map(() => {
+            const offset = Math.floor(Math.random() * 50);
+            return api(`/search?q=${encodeURIComponent(q)}&type=track&limit=20&offset=${offset}&market=from_token`);
         }));
 
-        const results = await Promise.all(fetches);
+        const settled = await Promise.allSettled(fetches);
+        const results = settled.filter(r => r.status === 'fulfilled').map(r => r.value);
 
         let pool = results.flatMap(r => r?.tracks?.items || []);
 
