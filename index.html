@@ -441,6 +441,118 @@
             background: var(--border);
         }
 
+        /* ── Light theme ── */
+        [data-theme="light"] {
+            --bg: #f4f4ef;
+            --surface: #ffffff;
+            --surface2: #ededea;
+            --surface3: #e2e2de;
+            --text: #1a1a1a;
+            --muted: #666;
+            --border: #d4d4d0;
+        }
+        [data-theme="light"] .btn-spotify { color: #000; }
+
+        /* ── Settings button ── */
+        .settings-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            box-shadow: 0 2px 14px rgba(0,0,0,0.35);
+            transition: all 0.2s;
+        }
+        .settings-btn:hover { color: var(--text); border-color: var(--muted); }
+        .settings-btn.open { color: var(--green); border-color: var(--green); }
+
+        /* ── Settings panel ── */
+        .settings-overlay {
+            position: fixed; inset: 0; z-index: 198; display: none;
+        }
+        .settings-overlay.open { display: block; }
+
+        .settings-panel {
+            position: fixed;
+            bottom: 80px;
+            right: 24px;
+            width: 250px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            z-index: 199;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+            transform: translateY(12px) scale(0.96);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.18s ease;
+            overflow: hidden;
+        }
+        .settings-panel.open {
+            transform: none; opacity: 1; pointer-events: all;
+        }
+        .settings-head {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--muted);
+            padding: 14px 18px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        .settings-item {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            width: 100%;
+            padding: 13px 18px;
+            background: none;
+            border: none;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            font-size: 0.9rem;
+            font-family: var(--font);
+            cursor: pointer;
+            text-align: left;
+            text-decoration: none;
+            transition: background 0.12s;
+        }
+        .settings-item:last-child { border-bottom: none; }
+        .settings-item:hover { background: var(--surface2); }
+        .settings-item-label { flex: 1; }
+        .settings-item--danger { color: #e06060; }
+        .settings-item--danger:hover { background: rgba(224,96,96,0.08); }
+
+        /* Toggle switch */
+        .stoggle {
+            width: 34px; height: 18px;
+            border-radius: 9px;
+            background: var(--surface3);
+            position: relative;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        .stoggle::after {
+            content: '';
+            position: absolute;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--muted);
+            top: 3px; left: 3px;
+            transition: all 0.2s;
+        }
+        .stoggle.on { background: var(--green); }
+        .stoggle.on::after { left: 19px; background: #000; }
+
         /* ── Responsive ── */
         @media (max-width: 580px) {
             header { padding: 15px 18px; }
@@ -460,8 +572,6 @@
     <div class="user-info" id="user-info" style="display:none">
         <img id="user-avatar" src="" alt="" style="display:none">
         <span class="user-name" id="user-name"></span>
-        <button class="btn-sm" onclick="logout()">Uitloggen</button>
-        <a class="btn-sm" href="https://www.spotify.com/account/apps" target="_blank" rel="noopener" style="text-decoration:none;border-color:#d08060;color:#d08060">App toegang intrekken →</a>
     </div>
 </header>
 
@@ -607,8 +717,10 @@
             <label>Naam nieuwe playlist</label>
             <input type="text" id="save-name" placeholder="Playlist naam">
         </div>
-        <textarea id="debug-out" style="display:none;margin-top:14px;width:100%;background:var(--surface2);border:1px solid #d04040;color:#e06060;padding:10px;border-radius:8px;font-size:0.8rem;font-family:monospace;resize:none;height:100px" readonly></textarea>
-        <button onclick="testAccess()" style="margin-top:10px;width:100%;background:none;border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem">🔍 Test Spotify toegang</button>
+        <div class="debug-only" style="display:none">
+            <textarea id="debug-out" style="display:none;margin-top:14px;width:100%;background:var(--surface2);border:1px solid #d04040;color:#e06060;padding:10px;border-radius:8px;font-size:0.8rem;font-family:monospace;resize:none;height:100px" readonly></textarea>
+            <button onclick="testAccess()" style="margin-top:10px;width:100%;background:none;border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem">🔍 Test Spotify toegang</button>
+        </div>
     </div>
 
     <div class="card" id="playlist-card" style="display:none">
@@ -623,6 +735,38 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- ── Settings ── -->
+<button class="settings-btn" id="settings-btn" onclick="toggleSettings()" title="Instellingen">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+</button>
+
+<div class="settings-overlay" id="settings-overlay" onclick="toggleSettings()"></div>
+
+<div class="settings-panel" id="settings-panel">
+    <div class="settings-head">Instellingen</div>
+    <button class="settings-item" onclick="toggleTheme()">
+        <span id="theme-icon">☀️</span>
+        <span class="settings-item-label" id="theme-label">Licht schema</span>
+        <div class="stoggle" id="theme-toggle"></div>
+    </button>
+    <button class="settings-item" onclick="toggleDebug()">
+        <span>🔍</span>
+        <span class="settings-item-label">Debug info</span>
+        <div class="stoggle" id="debug-toggle"></div>
+    </button>
+    <a class="settings-item" href="https://www.spotify.com/account/apps" target="_blank" rel="noopener" onclick="toggleSettings()">
+        <span>🔗</span>
+        <span class="settings-item-label">App toegang intrekken</span>
+    </a>
+    <button class="settings-item settings-item--danger" onclick="logout(); toggleSettings()">
+        <span>🚪</span>
+        <span class="settings-item-label">Uitloggen</span>
+    </button>
+</div>
 
 <script>
 const CLIENT_ID    = '813831faf30f4885b8cf63f801e6da96';
@@ -1335,9 +1479,49 @@ function toast(msg, type = '') {
     _toastTimer = setTimeout(() => el.className = '', 3200);
 }
 
+// ── Settings ──
+
+function toggleSettings() {
+    const panel   = document.getElementById('settings-panel');
+    const overlay = document.getElementById('settings-overlay');
+    const btn     = document.getElementById('settings-btn');
+    const open    = panel.classList.toggle('open');
+    overlay.classList.toggle('open', open);
+    btn.classList.toggle('open', open);
+}
+
+function toggleTheme() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const next    = isLight ? 'dark' : 'light';
+    applyTheme(next);
+    localStorage.setItem('theme', next);
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const isLight = theme === 'light';
+    document.getElementById('theme-toggle').classList.toggle('on', isLight);
+    document.getElementById('theme-icon').textContent  = isLight ? '🌙' : '☀️';
+    document.getElementById('theme-label').textContent = isLight ? 'Donker schema' : 'Licht schema';
+}
+
+function toggleDebug() {
+    const on = localStorage.getItem('debug') !== 'true';
+    localStorage.setItem('debug', on);
+    applyDebug(on);
+}
+
+function applyDebug(on) {
+    document.getElementById('debug-toggle').classList.toggle('on', on);
+    document.querySelectorAll('.debug-only').forEach(el => el.style.display = on ? '' : 'none');
+}
+
 // ── Boot ──
 
 async function boot() {
+    applyTheme(localStorage.getItem('theme') || 'dark');
+    applyDebug(localStorage.getItem('debug') === 'true');
+
     if (window.location.search.includes('code=')) {
         await handleCallback();
         return;
