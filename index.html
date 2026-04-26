@@ -7,7 +7,6 @@
     <style>
         :root {
             --green: #1DB954;
-            --green-dark: #158a3e;
             --bg: #0a0a0a;
             --surface: #161616;
             --surface2: #202020;
@@ -67,7 +66,7 @@
         }
         .btn-sm:hover { border-color: var(--muted); color: var(--text); }
 
-        /* ── Login screen ── */
+        /* ── Login ── */
         #login-screen {
             display: flex;
             flex-direction: column;
@@ -87,8 +86,7 @@
         }
 
         #login-screen h1 span { color: var(--green); }
-
-        #login-screen p { color: var(--muted); font-size: 1.05rem; max-width: 380px; }
+        #login-screen p { color: var(--muted); font-size: 1.05rem; max-width: 420px; }
 
         .btn-spotify {
             display: inline-flex;
@@ -104,18 +102,14 @@
             cursor: pointer;
             transition: all 0.2s;
             font-family: var(--font);
-            letter-spacing: 0.2px;
         }
-
         .btn-spotify:hover { background: #1ed760; transform: scale(1.03); }
-
-        .btn-spotify svg { flex-shrink: 0; }
 
         /* ── App ── */
         #app-screen { display: none; }
 
         main {
-            max-width: 860px;
+            max-width: 760px;
             margin: 0 auto;
             padding: 36px 24px 60px;
         }
@@ -135,11 +129,47 @@
             text-transform: uppercase;
             letter-spacing: 1.2px;
             color: var(--muted);
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
+        /* ── Hint text ── */
+        .hint {
+            font-size: 0.88rem;
+            color: var(--muted);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .hint code {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.82rem;
+            color: var(--text);
+        }
+
+        /* ── Textarea ── */
+        textarea {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 13px;
+            border-radius: 9px;
+            font-size: 0.88rem;
+            font-family: var(--font);
+            resize: vertical;
+            min-height: 180px;
+            outline: none;
+            transition: border-color 0.15s;
+            line-height: 1.6;
+        }
+        textarea:focus { border-color: var(--green); }
+        textarea::placeholder { color: var(--muted); }
+
         /* ── Form ── */
-        .field { margin-bottom: 18px; }
+        .field { margin-bottom: 16px; }
         .field:last-child { margin-bottom: 0; }
 
         label {
@@ -149,8 +179,7 @@
             margin-bottom: 7px;
         }
 
-        input[type="text"],
-        input[type="number"] {
+        input[type="text"] {
             width: 100%;
             background: var(--surface2);
             border: 1px solid var(--border);
@@ -162,115 +191,47 @@
             outline: none;
             transition: border-color 0.15s;
         }
+        input[type="text"]:focus { border-color: var(--green); }
 
-        input[type="text"]:focus,
-        input[type="number"]:focus { border-color: var(--green); }
-
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-        /* ── Genre grid ── */
-        .genre-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
-
-        .genre-tag {
-            padding: 6px 13px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: var(--surface2);
-            color: var(--muted);
-            font-size: 0.83rem;
-            cursor: pointer;
-            transition: all 0.12s;
-            user-select: none;
-        }
-
-        .genre-tag:hover { border-color: var(--green); color: var(--text); }
-        .genre-tag.active { background: var(--green); border-color: var(--green); color: #000; font-weight: 600; }
-
-        /* ── Year / Popularity controls ── */
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-        .pop-group { display: flex; gap: 8px; }
-
-        .pop-btn {
-            flex: 1;
-            padding: 9px 0;
-            border-radius: 9px;
-            border: 1px solid var(--border);
-            background: var(--surface2);
-            color: var(--muted);
-            font-size: 0.85rem;
-            font-family: var(--font);
-            cursor: pointer;
-            transition: all 0.12s;
-            text-align: center;
-        }
-
-        .pop-btn:hover { border-color: var(--green); color: var(--text); }
-        .pop-btn.active { background: var(--green); border-color: var(--green); color: #000; font-weight: 600; }
-
-        .year-row { display: flex; gap: 10px; align-items: center; }
-        .year-sep { color: var(--muted); font-size: 0.85rem; flex-shrink: 0; }
-
-        input[type="number"].year-input { text-align: center; }
-
-        /* ── Error banner ── */
-        .err {
-            background: rgba(220,60,60,0.1);
-            border: 1px solid rgba(220,60,60,0.35);
-            color: #e06060;
-            padding: 11px 14px;
-            border-radius: 8px;
-            font-size: 0.88rem;
-            margin-bottom: 14px;
-        }
-
-        /* ── Generate button ── */
-        .btn-generate {
+        /* ── Buttons ── */
+        .btn-primary {
             width: 100%;
             background: var(--green);
             color: #000;
             font-weight: 700;
             font-size: 1rem;
-            padding: 15px;
+            padding: 14px;
             border-radius: 50px;
             border: none;
             cursor: pointer;
             transition: all 0.2s;
             font-family: var(--font);
-            margin-top: 4px;
+            margin-top: 14px;
         }
+        .btn-primary:hover:not(:disabled) { background: #1ed760; transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
-        .btn-generate:hover:not(:disabled) { background: #1ed760; transform: translateY(-1px); }
-        .btn-generate:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-
-        /* ── Results ── */
-        #results-card { display: none; }
-
+        /* ── Results header ── */
         .results-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
 
         .results-header .card-title { margin-bottom: 0; }
 
-        .btn-regen {
-            background: none;
-            border: 1px solid var(--border);
-            color: var(--muted);
-            padding: 6px 14px;
-            border-radius: 20px;
-            cursor: pointer;
+        .not-found-badge {
             font-size: 0.8rem;
-            font-family: var(--font);
-            transition: all 0.15s;
+            color: #d08060;
+            background: rgba(208,128,96,0.1);
+            border: 1px solid rgba(208,128,96,0.25);
+            padding: 3px 10px;
+            border-radius: 20px;
         }
 
-        .btn-regen:hover { border-color: var(--muted); color: var(--text); }
-
         /* ── Track list ── */
-        .tracks { display: flex; flex-direction: column; gap: 6px; }
+        .tracks { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
 
         .track {
             display: flex;
@@ -281,8 +242,8 @@
             background: var(--surface2);
             transition: background 0.12s;
         }
-
         .track:hover { background: var(--surface3); }
+        .track.not-found { opacity: 0.45; }
 
         .track-num {
             width: 22px;
@@ -298,6 +259,10 @@
             object-fit: cover;
             flex-shrink: 0;
             background: var(--surface3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
         }
 
         .track-info { flex: 1; min-width: 0; }
@@ -316,12 +281,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-
-        .track-year {
-            font-size: 0.78rem;
-            color: var(--muted);
-            flex-shrink: 0;
         }
 
         .track-dur {
@@ -344,7 +303,6 @@
             flex-shrink: 0;
             line-height: 1;
         }
-
         .btn-remove:hover { color: #d04040; }
 
         /* ── Save bar ── */
@@ -352,7 +310,6 @@
             display: flex;
             gap: 12px;
             align-items: flex-end;
-            margin-top: 22px;
             padding-top: 20px;
             border-top: 1px solid var(--border);
         }
@@ -373,19 +330,36 @@
             white-space: nowrap;
             flex-shrink: 0;
         }
-
         .btn-save:hover:not(:disabled) { background: #1ed760; }
         .btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
 
-        /* ── Empty state ── */
-        .empty {
-            text-align: center;
-            padding: 36px 20px;
-            color: var(--muted);
-            font-size: 0.9rem;
+        /* ── Progress ── */
+        .progress-wrap {
+            margin-top: 14px;
+            display: none;
         }
 
-        .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .progress-bar-bg {
+            background: var(--surface2);
+            border-radius: 4px;
+            height: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 4px;
+            transition: width 0.2s;
+            width: 0%;
+        }
+
+        .progress-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-align: center;
+        }
 
         /* ── Spinner ── */
         .spinner {
@@ -398,7 +372,6 @@
             vertical-align: middle;
             margin-right: 6px;
         }
-
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ── Toast ── */
@@ -418,7 +391,6 @@
             pointer-events: none;
             white-space: nowrap;
         }
-
         #toast.show { transform: translateX(-50%) translateY(0); }
         #toast.success { border-color: var(--green); color: var(--green); }
         #toast.error { border-color: #d04040; color: #e06060; }
@@ -428,7 +400,6 @@
             header { padding: 15px 18px; }
             main { padding: 24px 14px 48px; }
             .card { padding: 18px; }
-            .form-row, .two-col { grid-template-columns: 1fr; }
             .save-bar { flex-direction: column; }
             .save-bar .btn-save { width: 100%; }
             #login-screen h1 { font-size: 2rem; }
@@ -449,8 +420,8 @@
 <!-- ── LOGIN ── -->
 <div id="login-screen">
     <div style="font-size:4rem">🎵</div>
-    <h1>Genereer jouw<br><span>perfecte playlist</span></h1>
-    <p>Koppel je Spotify en maak in seconden een playlist op basis van genre, jaar en sfeer.</p>
+    <h1>Zet je AI playlist<br><span>op Spotify</span></h1>
+    <p>Vraag ChatGPT of Claude om een lijst nummers, plak het antwoord in de app en sla het direct op als Spotify playlist.</p>
     <button class="btn-spotify" onclick="login()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
@@ -463,67 +434,39 @@
 <div id="app-screen">
 <main>
 
-    <!-- Config -->
     <div class="card">
-        <div class="card-title">Playlist instellen</div>
+        <div class="card-title">Plak je AI playlist</div>
+        <p class="hint">
+            Vraag een AI om een lijst nummers, bijv: <code>"Geef me 20 kerst nummers in jazz stijl"</code><br>
+            Kopieer het antwoord en plak het hieronder. De app herkent automatisch artiest en titel.
+        </p>
+        <textarea id="paste-input" placeholder="Plak hier de lijst van je AI, bijvoorbeeld:
 
-        <div class="form-row field">
-            <div>
-                <label>Naam</label>
-                <input type="text" id="playlist-name" placeholder="Mijn playlist">
+1. Frank Sinatra - Let It Snow
+2. Dean Martin - Baby It's Cold Outside
+3. Nat King Cole - The Christmas Song
+..."></textarea>
+
+        <div class="progress-wrap" id="progress-wrap">
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-fill"></div>
             </div>
-            <div>
-                <label>Aantal nummers</label>
-                <input type="number" id="track-count" min="5" max="50" value="20">
-            </div>
+            <div class="progress-label" id="progress-label">Zoeken...</div>
         </div>
 
-        <div class="field">
-            <label>Genre <span style="color:var(--muted);font-weight:400">(selecteer 1–5)</span></label>
-            <div class="genre-wrap" id="genre-grid"></div>
-        </div>
-
-        <div class="field">
-            <label>Zoekterm / sfeer <span style="color:var(--muted);font-weight:400">(optioneel)</span></label>
-            <input type="text" id="keyword" placeholder="bijv. chill summer, late night, workout...">
-        </div>
-
-        <div class="two-col field">
-            <div>
-                <label>Jaar</label>
-                <div class="year-row">
-                    <input type="number" id="year-from" class="year-input" min="1900" max="2026" value="2015" placeholder="Van">
-                    <span class="year-sep">–</span>
-                    <input type="number" id="year-to" class="year-input" min="1900" max="2026" value="2026" placeholder="Tot">
-                </div>
-            </div>
-            <div>
-                <label>Populariteit</label>
-                <div class="pop-group">
-                    <div class="pop-btn active" data-pop="popular" onclick="setPop(this)">🔥 Populair</div>
-                    <div class="pop-btn" data-pop="mix" onclick="setPop(this)">🎲 Mix</div>
-                    <div class="pop-btn" data-pop="underground" onclick="setPop(this)">💎 Obscuur</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="err-config" class="err" style="display:none"></div>
+        <button class="btn-primary" id="btn-search" onclick="parseAndSearch()">
+            Zoek nummers op Spotify
+        </button>
     </div>
 
-    <button class="btn-generate" id="btn-generate" onclick="generate()">
-        Genereer Playlist
-    </button>
-
-    <!-- Results -->
-    <div class="card" id="results-card">
+    <div class="card" id="results-card" style="display:none">
         <div class="results-header">
             <div class="card-title" style="margin-bottom:0">
-                Nummers <span id="track-count-badge" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:0.88rem;font-weight:400"></span>
+                Gevonden <span id="found-count" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:0.88rem;font-weight:400"></span>
             </div>
-            <button class="btn-regen" onclick="generate()">↻ Opnieuw</button>
+            <span class="not-found-badge" id="not-found-badge" style="display:none"></span>
         </div>
 
-        <div id="err-results" class="err" style="display:none"></div>
         <div class="tracks" id="tracks-list"></div>
 
         <div class="save-bar">
@@ -541,35 +484,12 @@
 <div id="toast"></div>
 
 <script>
-// ── Config ──
-const CLIENT_ID   = '813831faf30f4885b8cf63f801e6da96';
+const CLIENT_ID    = '813831faf30f4885b8cf63f801e6da96';
 const REDIRECT_URI = 'https://jeffgitty.github.io/spotify-playlist-generator';
-const SCOPES = 'user-read-private user-read-email playlist-modify-public playlist-modify-private';
+const SCOPES       = 'user-read-private user-read-email playlist-modify-public playlist-modify-private';
 
-// ── Genre list ──
-const GENRES = [
-    ['pop','Pop'], ['hip-hop','Hip-Hop'], ['r-n-b','R&B'], ['rock','Rock'],
-    ['indie','Indie'], ['alternative','Alternative'], ['electronic','Electronic'],
-    ['dance','Dance'], ['edm','EDM'], ['house','House'], ['techno','Techno'],
-    ['drum-and-bass','Drum & Bass'], ['dubstep','Dubstep'], ['chill','Chill'],
-    ['ambient','Ambient'], ['jazz','Jazz'], ['soul','Soul'], ['funk','Funk'],
-    ['latin','Latin'], ['reggaeton','Reggaeton'], ['k-pop','K-Pop'],
-    ['country','Country'], ['metal','Metal'], ['punk','Punk'],
-    ['classical','Klassiek'], ['study','Study'], ['work-out','Workout'],
-    ['party','Party'], ['sad','Sad'], ['happy','Happy'],
-];
-
-// ── State ──
-let selectedGenres = [];
-let selectedPop    = 'popular';
-let generatedTracks = [];
-let userProfile    = null;
-
-// ── Build UI ──
-document.getElementById('genre-grid').innerHTML =
-    GENRES.map(([id, label]) =>
-        `<div class="genre-tag" data-id="${id}" onclick="toggleGenre(this,'${id}')">${label}</div>`
-    ).join('');
+let userProfile = null;
+let foundTracks = []; // {track: SpotifyTrack, original: string} — only successfully found tracks
 
 // ── Auth: PKCE ──
 
@@ -590,14 +510,10 @@ async function login() {
     const verifier  = generateRandom(64);
     const challenge = await codeChallenge(verifier);
     localStorage.setItem('pkce_v', verifier);
-
     const p = new URLSearchParams({
-        client_id: CLIENT_ID,
-        response_type: 'code',
-        redirect_uri: REDIRECT_URI,
-        scope: SCOPES,
-        code_challenge_method: 'S256',
-        code_challenge: challenge,
+        client_id: CLIENT_ID, response_type: 'code',
+        redirect_uri: REDIRECT_URI, scope: SCOPES,
+        code_challenge_method: 'S256', code_challenge: challenge,
     });
     window.location.href = `https://accounts.spotify.com/authorize?${p}`;
 }
@@ -605,38 +521,23 @@ async function login() {
 async function handleCallback() {
     const p    = new URLSearchParams(window.location.search);
     const code = p.get('code');
-    const err  = p.get('error');
-
-    if (err) { toast('Inloggen geannuleerd.', 'error'); return; }
+    if (p.get('error')) { toast('Inloggen geannuleerd.', 'error'); return; }
     if (!code) return;
-
     const verifier = localStorage.getItem('pkce_v');
     if (!verifier) return;
-
-    const body = new URLSearchParams({
-        client_id: CLIENT_ID,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: REDIRECT_URI,
-        code_verifier: verifier,
-    });
-
     try {
         const res  = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body,
+            body: new URLSearchParams({ client_id: CLIENT_ID, grant_type: 'authorization_code', code, redirect_uri: REDIRECT_URI, code_verifier: verifier }),
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error_description || data.error);
-
         storeTokens(data);
         localStorage.removeItem('pkce_v');
         history.replaceState({}, '', window.location.pathname);
         await initApp();
-    } catch (e) {
-        toast('Inloggen mislukt: ' + e.message, 'error');
-    }
+    } catch (e) { toast('Inloggen mislukt: ' + e.message, 'error'); }
 }
 
 function storeTokens(data) {
@@ -649,7 +550,7 @@ async function refreshAccess() {
     const r = localStorage.getItem('sp_refresh');
     if (!r) return false;
     try {
-        const res = await fetch('https://accounts.spotify.com/api/token', {
+        const res  = await fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({ client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: r }),
@@ -685,11 +586,7 @@ async function api(path, opts = {}) {
     if (!token) throw new Error('Niet ingelogd');
     const res = await fetch(`https://api.spotify.com/v1${path}`, {
         ...opts,
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            ...(opts.headers || {}),
-        },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
     });
     if (res.status === 204) return null;
     const data = await res.json();
@@ -702,169 +599,159 @@ async function api(path, opts = {}) {
 async function initApp() {
     try {
         userProfile = await api('/me');
-
         document.getElementById('user-name').textContent = userProfile.display_name || 'Gebruiker';
         const av = userProfile.images?.[0]?.url;
-        if (av) {
-            const img = document.getElementById('user-avatar');
-            img.src = av; img.style.display = 'block';
-        }
-        document.getElementById('user-info').style.display = 'flex';
+        if (av) { const img = document.getElementById('user-avatar'); img.src = av; img.style.display = 'block'; }
+        document.getElementById('user-info').style.display   = 'flex';
         document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display  = 'block';
-
-        const name = `Mix van ${userProfile.display_name || 'mij'}`;
-        document.getElementById('playlist-name').value = name;
-        document.getElementById('save-name').value     = name;
-    } catch (e) {
-        toast('Laden mislukt: ' + e.message, 'error');
-    }
+        document.getElementById('app-screen').style.display   = 'block';
+        document.getElementById('save-name').value = `Playlist van ${userProfile.display_name || 'mij'}`;
+    } catch (e) { toast('Laden mislukt: ' + e.message, 'error'); }
 }
 
-// ── Controls ──
+// ── Parser ──
 
-function toggleGenre(el, id) {
-    const idx = selectedGenres.indexOf(id);
-    if (idx > -1) {
-        selectedGenres.splice(idx, 1);
-        el.classList.remove('active');
-    } else {
-        if (selectedGenres.length >= 5) { toast('Maximaal 5 genres', 'error'); return; }
-        selectedGenres.push(id);
-        el.classList.add('active');
-    }
-}
+function parseTracklist(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const results = [];
 
-function setPop(el) {
-    document.querySelectorAll('.pop-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-    selectedPop = el.dataset.pop;
-}
+    for (const line of lines) {
+        // Strip list prefixes: "1.", "1)", "-", "*", "•"
+        let s = line.replace(/^\d+[.)]\s*/, '').replace(/^[-*•]\s*/, '').trim();
 
-// ── Generate playlist ──
+        // Strip markdown bold/italic
+        s = s.replace(/\*\*/g, '').replace(/\*/g, '').replace(/_{1,2}([^_]+)_{1,2}/g, '$1');
 
-async function generate() {
-    const errEl = document.getElementById('err-config');
-    errEl.style.display = 'none';
+        // Strip surrounding quotes
+        s = s.replace(/^[""](.+?)[""]$/, '$1');
 
-    if (selectedGenres.length === 0) {
-        errEl.textContent = 'Selecteer minimaal 1 genre.';
-        errEl.style.display = 'block';
-        return;
-    }
+        // Skip very short lines or lines that look like headers/intros
+        if (s.length < 4 || /^(hier|this|these|de volgende|playlist|nummers?:|songs?:)/i.test(s)) continue;
 
-    const count   = Math.min(50, Math.max(5, parseInt(document.getElementById('track-count').value) || 20));
-    const keyword = document.getElementById('keyword').value.trim();
-    const yearFrom = parseInt(document.getElementById('year-from').value) || 1900;
-    const yearTo   = parseInt(document.getElementById('year-to').value)   || 2026;
+        let artist = '', title = '';
 
-    const btn = document.getElementById('btn-generate');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Genereren...';
+        // "Title by Artist"
+        const byMatch = s.match(/^(.+?)\s+by\s+(.+)$/i);
+        // "Artist - Title" or "Artist – Title" or "Artist — Title"
+        const dashMatch = s.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+        // "Artist: Title"
+        const colonMatch = s.match(/^([^:]{2,40}):\s*(.+)$/);
 
-    try {
-        // genre: filter only works for artist searches, not track searches.
-        // Use genre name as keyword. Omit year: from query — Spotify matches remasters
-        // by rerelease date, so year: excludes most classic tracks. Filter client-side instead.
-        const queries = selectedGenres.map(g => {
-            const term = g.replace(/-/g, ' ');
-            return keyword ? `${term} ${keyword}` : term;
-        });
-
-        // Fetch in parallel with random offsets for variety
-        const fetches = queries.flatMap(q => [0, 1, 2].map(() => {
-            const offset = Math.floor(Math.random() * 50);
-            return api(`/search?q=${encodeURIComponent(q)}&type=track&limit=20&offset=${offset}`);
-        }));
-
-        const settled = await Promise.allSettled(fetches);
-        const results = settled.filter(r => r.status === 'fulfilled').map(r => r.value);
-
-        let pool = results.flatMap(r => r?.tracks?.items || []);
-
-        // Deduplicate by track ID
-        const seen = new Set();
-        pool = pool.filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
-
-        // Year filter — only apply if user narrowed the range from defaults
-        if (yearFrom > 1900 || yearTo < 2026) {
-            pool = pool.filter(t => {
-                const y = parseInt(t.album.release_date?.substring(0,4) || '0');
-                return y >= yearFrom && y <= yearTo;
-            });
-        }
-
-        // Popularity filter — generous thresholds so older/niche music still shows up
-        const popRanges = { popular: [30, 100], mix: [0, 100], underground: [0, 35] };
-        const [pMin, pMax] = popRanges[selectedPop];
-        pool = pool.filter(t => t.popularity >= pMin && t.popularity <= pMax);
-
-        if (pool.length === 0) {
-            document.getElementById('err-results').textContent =
-                'Geen nummers gevonden met deze instellingen. Probeer een ruimer jaar-bereik of andere populariteit.';
-            document.getElementById('err-results').style.display = 'block';
-            document.getElementById('results-card').style.display = 'block';
-            document.getElementById('tracks-list').innerHTML = '';
-            document.getElementById('track-count-badge').textContent = '';
-            return;
-        }
-
-        // Sort by popularity, then shuffle within tiers for variety
-        if (selectedPop === 'popular') {
-            pool.sort((a, b) => b.popularity - a.popularity);
+        if (byMatch) {
+            title  = byMatch[1].trim().replace(/^[""]|[""]$/g, '');
+            artist = byMatch[2].trim().replace(/^[""]|[""]$/g, '');
+        } else if (dashMatch) {
+            artist = dashMatch[1].trim().replace(/^[""]|[""]$/g, '');
+            title  = dashMatch[2].trim().replace(/^[""]|[""]$/g, '');
+        } else if (colonMatch) {
+            artist = colonMatch[1].trim();
+            title  = colonMatch[2].trim().replace(/^[""]|[""]$/g, '');
         } else {
-            shuffle(pool);
+            title = s;
         }
 
-        generatedTracks = pool.slice(0, count);
-        document.getElementById('err-results').style.display = 'none';
-        renderTracks();
-
-        document.getElementById('results-card').style.display = 'block';
-        document.getElementById('save-name').value = document.getElementById('playlist-name').value;
-        document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    } catch (e) {
-        errEl.textContent = 'Fout: ' + e.message;
-        errEl.style.display = 'block';
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Genereer Playlist';
+        if (title) results.push({ artist, title, original: line });
     }
+
+    return results;
 }
 
-function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+// ── Search one track on Spotify ──
+
+async function searchTrack({ artist, title }) {
+    // Try with artist field filter first, fall back to plain query
+    const queries = artist
+        ? [`track:${title} artist:${artist}`, `${title} ${artist}`]
+        : [`track:${title}`, title];
+
+    for (const q of queries) {
+        try {
+            const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=1`);
+            const track = data?.tracks?.items?.[0];
+            if (track) return track;
+        } catch { /* try next query */ }
     }
+    return null;
 }
 
-// ── Render tracks ──
+// ── Parse & search ──
 
-function renderTracks() {
-    const list  = document.getElementById('tracks-list');
-    const badge = document.getElementById('track-count-badge');
-    badge.textContent = `(${generatedTracks.length})`;
+async function parseAndSearch() {
+    const text = document.getElementById('paste-input').value.trim();
+    if (!text) { toast('Plak eerst een lijst nummers.', 'error'); return; }
 
-    if (!generatedTracks.length) {
-        list.innerHTML = '<div class="empty"><div class="empty-icon">🎵</div>Geen nummers. Pas je instellingen aan.</div>';
-        return;
+    const parsed = parseTracklist(text);
+    if (!parsed.length) { toast('Geen nummers herkend in de tekst.', 'error'); return; }
+
+    const btn = document.getElementById('btn-search');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Zoeken...';
+
+    const progressWrap = document.getElementById('progress-wrap');
+    const progressFill = document.getElementById('progress-fill');
+    const progressLabel = document.getElementById('progress-label');
+    progressWrap.style.display = 'block';
+
+    foundTracks = [];
+    const notFound = [];
+    let done = 0;
+
+    // Search tracks sequentially to avoid rate limits
+    for (const entry of parsed) {
+        progressLabel.textContent = `Zoeken: "${entry.title}"…`;
+        progressFill.style.width = `${Math.round((done / parsed.length) * 100)}%`;
+
+        const track = await searchTrack(entry);
+        if (track) {
+            foundTracks.push({ track, original: entry.original });
+        } else {
+            notFound.push(entry.original);
+        }
+        done++;
     }
 
-    list.innerHTML = generatedTracks.map((t, i) => {
+    progressFill.style.width = '100%';
+    progressWrap.style.display = 'none';
+
+    btn.disabled = false;
+    btn.textContent = 'Zoek nummers op Spotify';
+
+    renderResults(notFound);
+    document.getElementById('results-card').style.display = 'block';
+    document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Render results ──
+
+function renderResults(notFound = []) {
+    const list    = document.getElementById('tracks-list');
+    const countEl = document.getElementById('found-count');
+    const nfBadge = document.getElementById('not-found-badge');
+
+    countEl.textContent = `(${foundTracks.length})`;
+
+    if (notFound.length) {
+        nfBadge.textContent = `${notFound.length} niet gevonden`;
+        nfBadge.style.display = 'inline-block';
+        nfBadge.title = notFound.join('\n');
+    } else {
+        nfBadge.style.display = 'none';
+    }
+
+    list.innerHTML = foundTracks.map((entry, i) => {
+        const t       = entry.track;
         const art     = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
         const artists = t.artists.map(a => esc(a.name)).join(', ');
-        const year    = t.album.release_date?.substring(0,4) || '';
         const dur     = fmtDur(t.duration_ms);
         return `<div class="track">
-            <span class="track-num">${i+1}</span>
-            ${art ? `<img class="track-art" src="${esc(art)}" alt="">` : '<div class="track-art"></div>'}
+            <span class="track-num">${i + 1}</span>
+            ${art
+                ? `<img class="track-art" src="${esc(art)}" alt="">`
+                : `<div class="track-art">🎵</div>`}
             <div class="track-info">
                 <div class="track-name">${esc(t.name)}</div>
                 <div class="track-artist">${artists}</div>
             </div>
-            <span class="track-year">${year}</span>
             <span class="track-dur">${dur}</span>
             <button class="btn-remove" data-i="${i}" onclick="removeTrack(this.dataset.i)" title="Verwijder">✕</button>
         </div>`;
@@ -872,19 +759,19 @@ function renderTracks() {
 }
 
 function removeTrack(i) {
-    generatedTracks.splice(parseInt(i), 1);
-    renderTracks();
+    foundTracks.splice(parseInt(i), 1);
+    renderResults();
 }
 
 function fmtDur(ms) {
     const s = Math.round(ms / 1000);
-    return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
 // ── Save playlist ──
 
 async function savePlaylist() {
-    if (!generatedTracks.length) { toast('Geen nummers om op te slaan.', 'error'); return; }
+    if (!foundTracks.length) { toast('Geen nummers om op te slaan.', 'error'); return; }
 
     const name = document.getElementById('save-name').value.trim() || 'Mijn Playlist';
     const btn  = document.getElementById('btn-save');
@@ -894,18 +781,14 @@ async function savePlaylist() {
     try {
         const playlist = await api(`/users/${userProfile.id}/playlists`, {
             method: 'POST',
-            body: JSON.stringify({
-                name,
-                description: 'Gegenereerd met PlaylistGen',
-                public: false,
-            }),
+            body: JSON.stringify({ name, description: 'Gegenereerd met PlaylistGen', public: false }),
         });
 
-        const uris = generatedTracks.map(t => t.uri);
+        const uris = foundTracks.map(e => e.track.uri);
         for (let i = 0; i < uris.length; i += 100) {
             await api(`/playlists/${playlist.id}/tracks`, {
                 method: 'POST',
-                body: JSON.stringify({ uris: uris.slice(i, i+100) }),
+                body: JSON.stringify({ uris: uris.slice(i, i + 100) }),
             });
         }
 
@@ -918,7 +801,7 @@ async function savePlaylist() {
     }
 }
 
-// ── Helpers ──
+// ── Utils ──
 
 function esc(s) {
     return String(s)
@@ -950,7 +833,6 @@ async function boot() {
         const ok = await refreshAccess();
         if (ok) await initApp();
     }
-
 }
 
 boot();
