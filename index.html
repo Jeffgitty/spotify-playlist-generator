@@ -675,7 +675,7 @@ async function searchTrack({ artist, title }) {
 
     for (const q of queries) {
         try {
-            const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=1`);
+            const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=5`);
             const track = data?.tracks?.items?.[0];
             if (track) return track;
         } catch { /* try next query */ }
@@ -796,7 +796,7 @@ async function testAccess() {
         ['GET /me', `https://api.spotify.com/v1/me`],
         ['GET /me/playlists', `https://api.spotify.com/v1/me/playlists?limit=1`],
         ['POST nieuwe playlist', `https://api.spotify.com/v1/users/${userProfile.id.replace(/~/g,'%7E')}/playlists`],
-        ...(firstPlaylistId ? [['POST tracks aan bestaande', `https://api.spotify.com/v1/playlists/${firstPlaylistId}/tracks`]] : []),
+        ...(firstPlaylistId ? [['POST tracks aan bestaande', `https://api.spotify.com/v1/playlists/${firstPlaylistId}/items`]] : []),
     ];
 
     let results = '';
@@ -856,7 +856,7 @@ async function savePlaylist() {
 
         const uris = foundTracks.map(e => e.track.uri);
         for (let i = 0; i < uris.length; i += 100) {
-            await api(`/playlists/${playlist.id}/tracks`, {
+            await api(`/playlists/${playlist.id}/items`, {
                 method: 'POST',
                 body: JSON.stringify({ uris: uris.slice(i, i + 100) }),
             });
