@@ -764,12 +764,11 @@ async function generate() {
 
     try {
         // genre: filter only works for artist searches, not track searches.
-        // Use genre name as keyword + year filter instead.
+        // Use genre name as keyword. Omit year: from query — Spotify matches remasters
+        // by rerelease date, so year: excludes most classic tracks. Filter client-side instead.
         const queries = selectedGenres.map(g => {
-            const term = g.replace(/-/g, ' '); // hip-hop → hip hop
-            let q = keyword ? `${term} ${keyword}` : term;
-            q += ` year:${yearFrom}-${yearTo}`;
-            return q;
+            const term = g.replace(/-/g, ' ');
+            return keyword ? `${term} ${keyword}` : term;
         });
 
         // Fetch in parallel with random offsets for variety
@@ -787,14 +786,16 @@ async function generate() {
         const seen = new Set();
         pool = pool.filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
 
-        // Year filter (double-check since API isn't always precise)
-        pool = pool.filter(t => {
-            const y = parseInt(t.album.release_date?.substring(0,4) || '0');
-            return y >= yearFrom && y <= yearTo;
-        });
+        // Year filter — only apply if user narrowed the range from defaults
+        if (yearFrom > 1900 || yearTo < 2026) {
+            pool = pool.filter(t => {
+                const y = parseInt(t.album.release_date?.substring(0,4) || '0');
+                return y >= yearFrom && y <= yearTo;
+            });
+        }
 
-        // Popularity filter
-        const popRanges = { popular: [60, 100], mix: [25, 100], underground: [0, 45] };
+        // Popularity filter — generous thresholds so older/niche music still shows up
+        const popRanges = { popular: [30, 100], mix: [0, 100], underground: [0, 35] };
         const [pMin, pMax] = popRanges[selectedPop];
         pool = pool.filter(t => t.popularity >= pMin && t.popularity <= pMax);
 
