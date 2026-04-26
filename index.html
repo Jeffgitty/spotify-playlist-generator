@@ -639,7 +639,7 @@ async function loadPlaylists() {
             '<option value="__new__">+ Nieuwe playlist aanmaken</option>' +
             '<option disabled>──────────────────</option>' +
             playlists.map(p =>
-                `<option value="${p.id}">${p.name}${p.tracks?.total != null ? ` (${p.tracks.total})` : ''}</option>`
+                `<option value="${p.id}">${p.name}</option>`
             ).join('');
     } catch (e) {
         sel.innerHTML = '<option value="">Laden mislukt: ' + e.message + '</option>';
