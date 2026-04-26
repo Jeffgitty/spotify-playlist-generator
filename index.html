@@ -788,7 +788,7 @@ async function testAccess() {
     const tests = [
         ['GET /me', `https://api.spotify.com/v1/me`],
         ['GET /me/playlists', `https://api.spotify.com/v1/me/playlists?limit=1`],
-        ['POST playlist', `https://api.spotify.com/v1/users/${userProfile.id}/playlists`],
+        ['POST playlist', `https://api.spotify.com/v1/users/${userProfile.id.replace(/~/g,'%7E')}/playlists`],
     ];
 
     let results = '';
@@ -825,7 +825,7 @@ async function savePlaylist() {
         const token = await getToken();
 
         // Raw fetch so we can see the full Spotify response
-        const rawRes = await fetch(`https://api.spotify.com/v1/users/${userProfile.id}/playlists`, {
+        const rawRes = await fetch(`https://api.spotify.com/v1/users/${userProfile.id.replace(/~/g,'%7E')}/playlists`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, public: true }),
