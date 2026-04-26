@@ -794,7 +794,10 @@ async function savePlaylist() {
 
         toast(`✓ "${name}" opgeslagen in Spotify!`, 'success');
     } catch (e) {
-        toast('Opslaan mislukt: ' + e.message, 'error');
+        const msg = e.message.toLowerCase().includes('forbidden')
+            ? 'Geen toestemming — log uit en opnieuw in.'
+            : 'Opslaan mislukt: ' + e.message;
+        toast(msg, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Opslaan in Spotify';
