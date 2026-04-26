@@ -417,24 +417,21 @@
         }
 
         .or-divider {
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             color: var(--muted);
             font-size: 0.8rem;
             letter-spacing: 1px;
             text-transform: uppercase;
-            margin: 4px 0 20px;
-            position: relative;
+            margin: 0 0 16px;
         }
         .or-divider::before, .or-divider::after {
             content: '';
-            position: absolute;
-            top: 50%;
-            width: 44%;
+            flex: 1;
             height: 1px;
             background: var(--border);
         }
-        .or-divider::before { left: 0; }
-        .or-divider::after  { right: 0; }
 
         /* ── Responsive ── */
         @media (max-width: 580px) {
@@ -501,34 +498,16 @@
                 </select>
             </div>
             <div class="field">
-                <label>Tijdperk</label>
-                <select id="gen-era">
-                    <option value="">Alles</option>
-                    <option value="2020-2025">2020s</option>
-                    <option value="2010-2019">2010s</option>
-                    <option value="2000-2009">2000s</option>
-                    <option value="1990-1999">90s</option>
-                    <option value="1980-1989">80s</option>
-                    <option value="1970-1979">70s</option>
-                    <option value="1960-1969">60s</option>
-                </select>
+                <label>Jaar van</label>
+                <input type="number" id="gen-year-from" placeholder="1900" min="1900" max="2025" style="appearance:auto">
             </div>
             <div class="field">
+                <label>Jaar tot</label>
+                <input type="number" id="gen-year-to" placeholder="2025" min="1900" max="2025" style="appearance:auto">
+            </div>
+            <div class="field" style="grid-column: span 2">
                 <label>Thema / Sfeer</label>
-                <select id="gen-theme">
-                    <option value="">Geen</option>
-                    <option value="christmas">Kerst</option>
-                    <option value="summer">Zomer</option>
-                    <option value="halloween">Halloween</option>
-                    <option value="chill">Chill</option>
-                    <option value="party">Feest</option>
-                    <option value="workout">Workout</option>
-                    <option value="romantic love">Romantisch</option>
-                    <option value="sad melancholy">Melancolisch</option>
-                    <option value="happy upbeat">Vrolijk</option>
-                    <option value="road trip">Road Trip</option>
-                    <option value="focus study">Focus / Studie</option>
-                </select>
+                <input type="text" id="gen-theme" placeholder="bijv. chill, kerst, workout, romantisch…">
             </div>
             <div class="field">
                 <label>Aantal nummers</label>
@@ -903,16 +882,17 @@ function shuffle(arr) {
 }
 
 async function generatePlaylist() {
-    const genre = document.getElementById('gen-genre').value;
-    const era   = document.getElementById('gen-era').value;
-    const theme = document.getElementById('gen-theme').value;
-    const count = parseInt(document.getElementById('gen-count').value);
+    const genre    = document.getElementById('gen-genre').value;
+    const yearFrom = document.getElementById('gen-year-from').value.trim();
+    const yearTo   = document.getElementById('gen-year-to').value.trim();
+    const theme    = document.getElementById('gen-theme').value.trim();
+    const count    = parseInt(document.getElementById('gen-count').value);
 
     const parts = [];
     if (theme) parts.push(theme);
-    if (genre) parts.push(`genre:${genre}`);
-    if (era)   parts.push(`year:${era}`);
-    if (!parts.length) parts.push('tag:hipster');
+    if (genre) parts.push(genre);
+    if (yearFrom || yearTo) parts.push(`year:${yearFrom || '1900'}-${yearTo || '2025'}`);
+    if (!parts.length) parts.push('tag:new');
     const q = parts.join(' ');
 
     const btn = document.getElementById('btn-generate');
