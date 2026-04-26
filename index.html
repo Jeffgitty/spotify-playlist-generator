@@ -307,6 +307,69 @@
         }
         .btn-remove:hover { color: #d04040; }
 
+        .track-dup-badge {
+            font-size: 0.7rem;
+            color: #d08060;
+            background: rgba(208,128,96,0.12);
+            border: 1px solid rgba(208,128,96,0.3);
+            padding: 2px 6px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .btn-swap {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 3px 6px;
+            border-radius: 4px;
+            transition: color 0.12s;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .btn-swap:hover { color: var(--green); }
+
+        .track-swap {
+            background: var(--surface3);
+            border-radius: 9px;
+            padding: 10px;
+            margin-bottom: 4px;
+        }
+        .swap-search { display: flex; gap: 8px; margin-bottom: 8px; }
+        .swap-search input { flex: 1; }
+        .btn-swap-go {
+            background: var(--green);
+            color: #000;
+            border: none;
+            padding: 0 14px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: var(--font);
+            flex-shrink: 0;
+        }
+        .swap-results { display: flex; flex-direction: column; gap: 4px; }
+        .swap-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 8px;
+            border-radius: 7px;
+            cursor: pointer;
+            background: var(--surface2);
+            transition: background 0.12s;
+        }
+        .swap-option:hover { background: var(--surface); }
+        .swap-option img { width:32px; height:32px; border-radius:4px; flex-shrink:0; object-fit:cover; }
+        .swap-option-img { width:32px; height:32px; border-radius:4px; flex-shrink:0; background:var(--surface3); }
+        .swap-option-info { min-width:0; flex:1; }
+        .swap-option-name { font-size:0.85rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .swap-option-artist { font-size:0.75rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
         .drag-handle {
             color: var(--muted);
             cursor: grab;
@@ -1316,11 +1379,20 @@ function renderResults(notFound = []) {
         nfBadge.style.display = 'none';
     }
 
+    // Detecteer dubbele namen
+    const nameCounts = {};
+    foundTracks.forEach(e => {
+        const k = e.track.name.toLowerCase();
+        nameCounts[k] = (nameCounts[k] || 0) + 1;
+    });
+
     list.innerHTML = foundTracks.map((entry, i) => {
         const t       = entry.track;
         const art     = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
         const artists = t.artists.map(a => esc(a.name)).join(', ');
         const dur     = fmtDur(t.duration_ms);
+        const isDup   = nameCounts[t.name.toLowerCase()] > 1;
+        const defQ    = esc(`${t.artists[0]?.name || ''} ${t.name}`);
         return `<div class="track" draggable="true" data-i="${i}"
             ondragstart="onDragStart(event,${i})"
             ondragover="onDragOver(event,${i})"
@@ -1328,17 +1400,72 @@ function renderResults(notFound = []) {
             ondragend="onDragEnd()">
             <span class="drag-handle">⠿</span>
             <span class="track-num">${i + 1}</span>
-            ${art
-                ? `<img class="track-art" src="${esc(art)}" alt="">`
-                : `<div class="track-art">🎵</div>`}
+            ${art ? `<img class="track-art" src="${esc(art)}" alt="">` : `<div class="track-art">🎵</div>`}
             <div class="track-info">
                 <div class="track-name">${esc(t.name)}</div>
                 <div class="track-artist">${artists}</div>
             </div>
+            ${isDup ? '<span class="track-dup-badge">dubbel</span>' : ''}
             <span class="track-dur">${dur}</span>
+            <button class="btn-swap" onclick="openSwap(${i})" title="Wissel nummer">↩</button>
             <button class="btn-remove" data-i="${i}" onclick="removeTrack(this.dataset.i)" title="Verwijder">✕</button>
+        </div>
+        <div class="track-swap" id="swap-${i}" style="display:none">
+            <div class="swap-search">
+                <input type="text" id="swap-input-${i}" placeholder="Zoek alternatief…" value="${defQ}" onkeydown="if(event.key==='Enter')doSwapSearch(${i})">
+                <button class="btn-swap-go" onclick="doSwapSearch(${i})">Zoek</button>
+            </div>
+            <div class="swap-results" id="swap-results-${i}"></div>
         </div>`;
     }).join('');
+}
+
+let _swapCache = {};
+let _swapOpenIdx = null;
+
+function openSwap(i) {
+    if (_swapOpenIdx !== null && _swapOpenIdx !== i) {
+        const prev = document.getElementById(`swap-${_swapOpenIdx}`);
+        if (prev) prev.style.display = 'none';
+    }
+    const panel = document.getElementById(`swap-${i}`);
+    const opening = panel.style.display === 'none';
+    panel.style.display = opening ? 'block' : 'none';
+    _swapOpenIdx = opening ? i : null;
+    if (opening) doSwapSearch(i);
+}
+
+async function doSwapSearch(i) {
+    const q = document.getElementById(`swap-input-${i}`).value.trim();
+    if (!q) return;
+    const resultsEl = document.getElementById(`swap-results-${i}`);
+    resultsEl.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:6px 0">Zoeken…</div>';
+    try {
+        const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=6`);
+        const tracks = (data.tracks?.items || []).filter(Boolean);
+        _swapCache[i] = tracks;
+        if (!tracks.length) { resultsEl.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:6px 0">Geen resultaten.</div>'; return; }
+        resultsEl.innerHTML = tracks.map((t, j) => {
+            const art = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
+            return `<div class="swap-option" onclick="selectSwap(${i},${j})">
+                ${art ? `<img src="${esc(art)}" alt="">` : '<div class="swap-option-img"></div>'}
+                <div class="swap-option-info">
+                    <div class="swap-option-name">${esc(t.name)}</div>
+                    <div class="swap-option-artist">${t.artists.map(a => esc(a.name)).join(', ')}</div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        resultsEl.innerHTML = `<div style="color:#e06060;font-size:0.8rem;padding:6px 0">Fout: ${esc(e.message)}</div>`;
+    }
+}
+
+function selectSwap(i, j) {
+    const track = _swapCache[i]?.[j];
+    if (!track) return;
+    foundTracks[i] = { track, original: foundTracks[i].original };
+    _swapOpenIdx = null;
+    renderResults();
 }
 
 function removeTrack(i) {
