@@ -636,11 +636,12 @@ async function loadPlaylists() {
             url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
         }
         sel.innerHTML =
-            '<option value="__new__">+ Nieuwe playlist aanmaken</option>' +
-            '<option disabled>──────────────────</option>' +
             playlists.map(p =>
                 `<option value="${p.id}">${p.name}</option>`
-            ).join('');
+            ).join('') +
+            '<option disabled>──────────────────</option>' +
+            '<option value="__new__">+ Nieuwe playlist aanmaken</option>';
+        onPlaylistSelect();
     } catch (e) {
         sel.innerHTML = '<option value="">Laden mislukt: ' + e.message + '</option>';
     }
