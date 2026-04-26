@@ -513,7 +513,7 @@ async function login() {
     const p = new URLSearchParams({
         client_id: CLIENT_ID, response_type: 'code',
         redirect_uri: REDIRECT_URI, scope: SCOPES,
-        code_challenge_method: 'S256', code_challenge: challenge, show_dialog: 'true',
+        code_challenge_method: 'S256', code_challenge: challenge,
     });
     window.location.href = `https://accounts.spotify.com/authorize?${p}`;
 }
@@ -590,7 +590,7 @@ async function api(path, opts = {}) {
     });
     if (res.status === 204) return null;
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || `API fout ${res.status}`);
+    if (!res.ok) throw new Error(`${res.status}: ${data.error?.message || JSON.stringify(data.error) || 'onbekende fout'}`);
     return data;
 }
 
@@ -794,10 +794,7 @@ async function savePlaylist() {
 
         toast(`✓ "${name}" opgeslagen in Spotify!`, 'success');
     } catch (e) {
-        const msg = e.message.toLowerCase().includes('forbidden')
-            ? 'Geen toestemming — log uit en opnieuw in.'
-            : 'Opslaan mislukt: ' + e.message;
-        toast(msg, 'error');
+        toast('Opslaan mislukt: ' + e.message, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Opslaan in Spotify';
