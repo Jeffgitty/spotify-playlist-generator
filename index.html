@@ -923,6 +923,13 @@ async function generateWithAI() {
 
         if (!content.trim()) throw new Error('AI gaf een lege reactie');
 
+        // Controleer of er herkenbare nummers in zitten
+        const parsed = parseTracklist(content);
+        if (parsed.length < 2) {
+            toast('AI kon geen lijst maken voor deze combinatie. Probeer andere instellingen.', 'error');
+            return;
+        }
+
         // Gebruik bestaande parser + Spotify-zoekopdracht
         document.getElementById('paste-input').value = content;
         await parseAndSearch();
