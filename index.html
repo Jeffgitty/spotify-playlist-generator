@@ -793,7 +793,7 @@ async function savePlaylist() {
         const rawData = await rawRes.json();
 
         if (!rawRes.ok) {
-            const dbg = `status: ${rawRes.status}\nmessage: ${rawData.error?.message}\nreason: ${rawData.error?.reason || '-'}\nscopes: ${grantedScopes}\nuid: ${userProfile.id}`;
+            const dbg = `status: ${rawRes.status}\nmessage: ${rawData.error?.message}\nreason: ${rawData.error?.reason || '-'}\nscopes: ${grantedScopes}\nuid: ${userProfile.id}\nemail: ${userProfile.email}`;
             const el = document.getElementById('debug-out');
             el.value = dbg; el.style.display = 'block';
             toast('Opslaan mislukt — zie debug info hieronder', 'error');
