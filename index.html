@@ -654,12 +654,12 @@ async function loadPlaylists() {
             playlists.push(...(data.items || []).filter(Boolean));
             url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
         }
+        const owned    = playlists.filter(p => p.owner?.id === userProfile?.id);
+        const followed = playlists.filter(p => p.owner?.id !== userProfile?.id);
         sel.innerHTML =
-            playlists.map(p =>
-                `<option value="${p.id}">${p.name}</option>`
-            ).join('') +
-            '<option disabled>──────────────────</option>' +
-            '<option value="__new__">+ Nieuwe playlist aanmaken</option>';
+            '<option value="__new__">+ Nieuwe playlist aanmaken</option>' +
+            (owned.length    ? '<option disabled>── Jouw playlists ──</option>'    + owned.map(p    => `<option value="${p.id}">${p.name}</option>`).join('') : '') +
+            (followed.length ? '<option disabled>── Gevolgd (alleen toevoegen) ──</option>' + followed.map(p => `<option value="${p.id}">${p.name}</option>`).join('') : '');
         onPlaylistSelect();
     } catch (e) {
         sel.innerHTML = '<option value="">Laden mislukt: ' + e.message + '</option>';
@@ -873,7 +873,11 @@ async function loadPlaylistContents(playlistId) {
         }
         renderPlaylistTracks();
     } catch (e) {
-        list.innerHTML = `<div style="color:#e06060;font-size:0.85rem;padding:8px 0">Laden mislukt: ${esc(e.message)}</div>`;
+        if (e.message.startsWith('403')) {
+            list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px 0">Inhoud niet zichtbaar — dit is een gevolgde playlist die je niet bezit. Je kunt er wel nummers aan toevoegen.</div>';
+        } else {
+            list.innerHTML = `<div style="color:#e06060;font-size:0.85rem;padding:8px 0">Laden mislukt: ${esc(e.message)}</div>`;
+        }
     }
 }
 
