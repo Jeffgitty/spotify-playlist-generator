@@ -307,6 +307,17 @@
         }
         .btn-remove:hover { color: #d04040; }
 
+        .drag-handle {
+            color: var(--muted);
+            cursor: grab;
+            font-size: 1rem;
+            flex-shrink: 0;
+            padding: 0 4px;
+            user-select: none;
+        }
+        .drag-handle:active { cursor: grabbing; }
+        .track.drag-over { outline: 1px dashed var(--green); background: var(--surface3); }
+
         /* ── Save bar ── */
         .save-bar {
             display: flex;
@@ -770,6 +781,49 @@ async function parseAndSearch() {
     document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ── Drag & drop ──
+
+let _dragIdx = null;
+
+function onDragStart(e, i) {
+    _dragIdx = i;
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(e, i) {
+    e.preventDefault();
+    document.querySelectorAll('.track').forEach((el, idx) =>
+        el.classList.toggle('drag-over', idx === i));
+}
+
+function onDrop(e, i) {
+    e.preventDefault();
+    if (_dragIdx === null || _dragIdx === i) return;
+    const moved = foundTracks.splice(_dragIdx, 1)[0];
+    foundTracks.splice(i, 0, moved);
+    renderResults();
+}
+
+function onDragEnd() {
+    document.querySelectorAll('.track').forEach(el => el.classList.remove('drag-over'));
+    _dragIdx = null;
+}
+
+// ── Duplicatencheck ──
+
+async function fetchPlaylistTrackUris(playlistId) {
+    const uris = new Set();
+    let url = `/playlists/${playlistId}/tracks?limit=100&fields=next,items(track(uri))`;
+    while (url) {
+        const data = await api(url);
+        for (const item of (data.items || [])) {
+            if (item?.track?.uri) uris.add(item.track.uri);
+        }
+        url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
+    }
+    return uris;
+}
+
 // ── Render results ──
 
 function renderResults(notFound = []) {
@@ -792,7 +846,12 @@ function renderResults(notFound = []) {
         const art     = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
         const artists = t.artists.map(a => esc(a.name)).join(', ');
         const dur     = fmtDur(t.duration_ms);
-        return `<div class="track">
+        return `<div class="track" draggable="true" data-i="${i}"
+            ondragstart="onDragStart(event,${i})"
+            ondragover="onDragOver(event,${i})"
+            ondrop="onDrop(event,${i})"
+            ondragend="onDragEnd()">
+            <span class="drag-handle">⠿</span>
             <span class="track-num">${i + 1}</span>
             ${art
                 ? `<img class="track-art" src="${esc(art)}" alt="">`
@@ -893,7 +952,20 @@ async function savePlaylist() {
             playlistName = sel.options[sel.selectedIndex].text;
         }
 
-        const uris = foundTracks.map(e => e.track.uri);
+        let toAdd = foundTracks;
+        let skipped = 0;
+        if (choice !== '__new__') {
+            btn.textContent = 'Duplicaten controleren…';
+            const existing = await fetchPlaylistTrackUris(playlistId);
+            toAdd = foundTracks.filter(e => !existing.has(e.track.uri));
+            skipped = foundTracks.length - toAdd.length;
+            if (toAdd.length === 0) {
+                toast('Alle nummers staan al in deze playlist.', 'error');
+                btn.disabled = false; btn.textContent = 'Opslaan'; return;
+            }
+        }
+
+        const uris = toAdd.map(e => e.track.uri);
         for (let i = 0; i < uris.length; i += 100) {
             await api(`/playlists/${playlistId}/items`, {
                 method: 'POST',
@@ -901,7 +973,8 @@ async function savePlaylist() {
             });
         }
 
-        toast(`✓ ${foundTracks.length} nummers opgeslagen in "${playlistName}"!`, 'success');
+        const skipMsg = skipped > 0 ? ` (${skipped} dubbel overgeslagen)` : '';
+        toast(`✓ ${toAdd.length} nummers opgeslagen in "${playlistName}"!${skipMsg}`, 'success');
         loadPlaylists();
     } catch (e) {
         toast('Opslaan mislukt: ' + e.message, 'error');
