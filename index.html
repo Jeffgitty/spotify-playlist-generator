@@ -416,6 +416,14 @@
             margin-bottom: 4px;
         }
 
+        .year-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .year-range input { flex: 1; }
+        .year-range span { color: var(--muted); flex-shrink: 0; font-size: 1rem; }
+
         .or-divider {
             display: flex;
             align-items: center;
@@ -498,18 +506,6 @@
                 </select>
             </div>
             <div class="field">
-                <label>Jaar van</label>
-                <input type="number" id="gen-year-from" placeholder="1900" min="1900" max="2025" style="appearance:auto">
-            </div>
-            <div class="field">
-                <label>Jaar tot</label>
-                <input type="number" id="gen-year-to" placeholder="2025" min="1900" max="2025" style="appearance:auto">
-            </div>
-            <div class="field" style="grid-column: span 2">
-                <label>Thema / Sfeer</label>
-                <input type="text" id="gen-theme" placeholder="bijv. chill, kerst, workout, romantisch…">
-            </div>
-            <div class="field">
                 <label>Aantal nummers</label>
                 <select id="gen-count">
                     <option value="10">10</option>
@@ -518,6 +514,18 @@
                     <option value="50">50</option>
                     <option value="100">100</option>
                 </select>
+            </div>
+            <div class="field" style="grid-column: span 2">
+                <label>Jaartal</label>
+                <div class="year-range">
+                    <input type="number" id="gen-year-from" placeholder="Van (bijv. 1980)" min="1900" max="2025">
+                    <span>–</span>
+                    <input type="number" id="gen-year-to" placeholder="Tot (bijv. 1989)" min="1900" max="2025">
+                </div>
+            </div>
+            <div class="field" style="grid-column: span 2">
+                <label>Sfeer / Thema</label>
+                <input type="text" id="gen-theme" placeholder="bijv. chill, kerst, workout, romantisch…">
             </div>
         </div>
         <button class="btn-primary" id="btn-generate" onclick="generateWithAI()">Genereer met AI</button>
