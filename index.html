@@ -408,6 +408,34 @@
         #toast.success { border-color: var(--green); color: var(--green); }
         #toast.error { border-color: #d04040; color: #e06060; }
 
+        /* ── Generator grid ── */
+        .gen-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .or-divider {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin: 4px 0 20px;
+            position: relative;
+        }
+        .or-divider::before, .or-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 44%;
+            height: 1px;
+            background: var(--border);
+        }
+        .or-divider::before { left: 0; }
+        .or-divider::after  { right: 0; }
+
         /* ── Responsive ── */
         @media (max-width: 580px) {
             header { padding: 15px 18px; }
@@ -416,6 +444,7 @@
             .save-bar { flex-direction: column; }
             .save-bar .btn-save { width: 100%; }
             #login-screen h1 { font-size: 2rem; }
+            .gen-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -449,7 +478,76 @@
 <main>
 
     <div class="card">
-        <div class="card-title">Plak je AI playlist</div>
+        <div class="card-title">Genereer playlist</div>
+        <div class="gen-grid">
+            <div class="field">
+                <label>Genre</label>
+                <select id="gen-genre">
+                    <option value="">Alles</option>
+                    <option value="pop">Pop</option>
+                    <option value="rock">Rock</option>
+                    <option value="hip-hop">Hip-Hop</option>
+                    <option value="r-n-b">R&amp;B</option>
+                    <option value="electronic">Electronic</option>
+                    <option value="dance">Dance</option>
+                    <option value="jazz">Jazz</option>
+                    <option value="classical">Classical</option>
+                    <option value="latin">Latin</option>
+                    <option value="country">Country</option>
+                    <option value="metal">Metal</option>
+                    <option value="indie">Indie</option>
+                    <option value="soul">Soul</option>
+                    <option value="reggae">Reggae</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Tijdperk</label>
+                <select id="gen-era">
+                    <option value="">Alles</option>
+                    <option value="2020-2025">2020s</option>
+                    <option value="2010-2019">2010s</option>
+                    <option value="2000-2009">2000s</option>
+                    <option value="1990-1999">90s</option>
+                    <option value="1980-1989">80s</option>
+                    <option value="1970-1979">70s</option>
+                    <option value="1960-1969">60s</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Thema / Sfeer</label>
+                <select id="gen-theme">
+                    <option value="">Geen</option>
+                    <option value="christmas">Kerst</option>
+                    <option value="summer">Zomer</option>
+                    <option value="halloween">Halloween</option>
+                    <option value="chill">Chill</option>
+                    <option value="party">Feest</option>
+                    <option value="workout">Workout</option>
+                    <option value="romantic love">Romantisch</option>
+                    <option value="sad melancholy">Melancolisch</option>
+                    <option value="happy upbeat">Vrolijk</option>
+                    <option value="road trip">Road Trip</option>
+                    <option value="focus study">Focus / Studie</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Aantal nummers</label>
+                <select id="gen-count">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="30">30</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn-primary" id="btn-generate" onclick="generatePlaylist()">Genereer playlist</button>
+    </div>
+
+    <div class="or-divider">of plak zelf een lijst</div>
+
+    <div class="card">
+        <div class="card-title">Plak je eigen lijst</div>
         <p class="hint">
             Vraag een AI om een lijst nummers, bijv: <code>"Geef me 20 kerst nummers in jazz stijl"</code><br>
             Kopieer het antwoord en plak het hieronder. De app herkent automatisch artiest en titel.
@@ -793,6 +891,67 @@ async function parseAndSearch() {
     renderResults(notFound);
     document.getElementById('results-card').style.display = 'block';
     document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Generator ──
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+async function generatePlaylist() {
+    const genre = document.getElementById('gen-genre').value;
+    const era   = document.getElementById('gen-era').value;
+    const theme = document.getElementById('gen-theme').value;
+    const count = parseInt(document.getElementById('gen-count').value);
+
+    const parts = [];
+    if (theme) parts.push(theme);
+    if (genre) parts.push(`genre:${genre}`);
+    if (era)   parts.push(`year:${era}`);
+    if (!parts.length) parts.push('tag:hipster');
+    const q = parts.join(' ');
+
+    const btn = document.getElementById('btn-generate');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Genereren…';
+
+    try {
+        const pool = [];
+        const needed = Math.min(count * 4, 200);
+        for (let offset = 0; offset < needed; offset += 50) {
+            try {
+                const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=50&offset=${offset}`);
+                const items = (data.tracks?.items || []).filter(Boolean);
+                pool.push(...items);
+                if (items.length < 50) break;
+            } catch { break; }
+        }
+
+        if (!pool.length) { toast('Geen nummers gevonden voor deze combinatie.', 'error'); return; }
+
+        shuffle(pool);
+        const seen = new Set();
+        const unique = pool.filter(t => { if (seen.has(t.uri)) return false; seen.add(t.uri); return true; });
+
+        foundTracks = unique.slice(0, count).map(t => ({
+            track: t,
+            original: `${t.artists[0]?.name || ''} - ${t.name}`,
+        }));
+
+        renderResults([]);
+        document.getElementById('results-card').style.display = 'block';
+        document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        toast(`✓ ${foundTracks.length} nummers gegenereerd!`, 'success');
+    } catch (e) {
+        toast('Genereren mislukt: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Genereer playlist';
+    }
 }
 
 // ── Drag & drop ──
