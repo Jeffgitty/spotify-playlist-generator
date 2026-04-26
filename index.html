@@ -648,8 +648,13 @@ async function loadPlaylists() {
 
 function onPlaylistSelect() {
     const sel = document.getElementById('playlist-select');
-    document.getElementById('new-name-field').style.display =
-        sel.value === '__new__' ? 'block' : 'none';
+    const field = document.getElementById('new-name-field');
+    if (sel.value === '__new__') {
+        field.style.display = 'block';
+        document.getElementById('save-name').focus();
+    } else {
+        field.style.display = 'none';
+    }
 }
 
 // ── Parser ──
@@ -875,7 +880,8 @@ async function savePlaylist() {
         let playlistId, playlistName;
 
         if (choice === '__new__') {
-            playlistName = document.getElementById('save-name').value.trim() || 'Mijn Playlist';
+            playlistName = document.getElementById('save-name').value.trim();
+            if (!playlistName) { toast('Geef de playlist een naam.', 'error'); btn.disabled = false; btn.textContent = 'Opslaan'; return; }
             const pl = await api('/me/playlists', {
                 method: 'POST',
                 body: JSON.stringify({ name: playlistName, public: true }),
