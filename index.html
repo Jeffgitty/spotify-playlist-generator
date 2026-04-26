@@ -515,6 +515,30 @@
                     <option value="100">100</option>
                 </select>
             </div>
+            <div class="field">
+                <label>Taal</label>
+                <select id="gen-lang">
+                    <option value="">Alle talen</option>
+                    <option value="Dutch">Nederlands</option>
+                    <option value="English">Engels</option>
+                    <option value="Spanish">Spaans</option>
+                    <option value="French">Frans</option>
+                    <option value="German">Duits</option>
+                    <option value="Italian">Italiaans</option>
+                    <option value="Portuguese">Portugees</option>
+                    <option value="Japanese">Japans</option>
+                    <option value="Korean">Koreaans</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Tempo</label>
+                <select id="gen-tempo">
+                    <option value="">Geen voorkeur</option>
+                    <option value="slow and calm">Langzaam</option>
+                    <option value="medium tempo">Normaal</option>
+                    <option value="fast and energetic">Snel</option>
+                </select>
+            </div>
             <div class="field" style="grid-column: span 2">
                 <label>Jaartal</label>
                 <div class="year-range">
@@ -526,6 +550,10 @@
             <div class="field" style="grid-column: span 2">
                 <label>Sfeer / Thema</label>
                 <input type="text" id="gen-theme" placeholder="bijv. chill, kerst, workout, romantisch…">
+            </div>
+            <div class="field" style="grid-column: span 2">
+                <label>In de stijl van</label>
+                <input type="text" id="gen-artist" placeholder="bijv. The Beatles, Adele, Drake…">
             </div>
         </div>
         <button class="btn-primary" id="btn-generate" onclick="generateWithAI()">Genereer met AI</button>
@@ -887,6 +915,9 @@ async function generateWithAI() {
     const yearFrom = document.getElementById('gen-year-from').value.trim();
     const yearTo   = document.getElementById('gen-year-to').value.trim();
     const theme    = document.getElementById('gen-theme').value.trim();
+    const artist   = document.getElementById('gen-artist').value.trim();
+    const lang     = document.getElementById('gen-lang').value;
+    const tempo    = document.getElementById('gen-tempo').value;
     const count    = parseInt(document.getElementById('gen-count').value);
 
     const lines = [];
@@ -896,6 +927,9 @@ async function generateWithAI() {
     else if (yearFrom)      lines.push(`From year: ${yearFrom}`);
     else if (yearTo)        lines.push(`Up to year: ${yearTo}`);
     if (theme)              lines.push(`Mood/theme: ${theme}`);
+    if (artist)             lines.push(`In the style of: ${artist}`);
+    if (lang)               lines.push(`Language: songs must be in ${lang}`);
+    if (tempo)              lines.push(`Tempo: ${tempo}`);
     lines.push('');
     lines.push('Return ONLY a numbered list in this exact format, nothing else:');
     lines.push('1. Artist Name - Song Title');
