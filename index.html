@@ -884,12 +884,10 @@ function shuffle(arr) {
 async function fetchSearchPool(q, needed) {
     const pool = [];
     for (let offset = 0; offset < needed && pool.length < needed; offset += 50) {
-        try {
-            const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=50&offset=${offset}`);
-            const items = (data.tracks?.items || []).filter(Boolean);
-            pool.push(...items);
-            if (items.length < 50) break;
-        } catch { break; }
+        const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=50&offset=${offset}`);
+        const items = (data.tracks?.items || []).filter(Boolean);
+        pool.push(...items);
+        if (items.length < 50) break;
     }
     return pool;
 }
@@ -918,12 +916,15 @@ async function generatePlaylist() {
     try {
         const needed = Math.min(count * 4, 200);
         let pool = [];
+        let lastErr = '';
         for (const q of queries) {
-            pool = await fetchSearchPool(q, needed);
-            if (pool.length >= 5) break;
+            try {
+                pool = await fetchSearchPool(q, needed);
+                if (pool.length >= 5) break;
+            } catch (e) { lastErr = e.message; }
         }
 
-        if (!pool.length) { toast('Geen nummers gevonden. Probeer andere zoektermen.', 'error'); return; }
+        if (!pool.length) { toast('Geen resultaten: ' + (lastErr || 'onbekende fout'), 'error'); return; }
 
         shuffle(pool);
         const seen = new Set();
