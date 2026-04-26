@@ -476,6 +476,7 @@
             </div>
             <button class="btn-save" id="btn-save" onclick="savePlaylist()">Opslaan in Spotify</button>
         </div>
+        <textarea id="debug-out" style="display:none;margin-top:14px;width:100%;background:var(--surface2);border:1px solid #d04040;color:#e06060;padding:10px;border-radius:8px;font-size:0.8rem;font-family:monospace;resize:none;height:80px" readonly></textarea>
     </div>
 
 </main>
@@ -792,7 +793,10 @@ async function savePlaylist() {
         const rawData = await rawRes.json();
 
         if (!rawRes.ok) {
-            toast(`DEBUG — status:${rawRes.status} msg:${rawData.error?.message} scopes:${grantedScopes} uid:${userProfile.id}`, 'error');
+            const dbg = `status: ${rawRes.status}\nmessage: ${rawData.error?.message}\nreason: ${rawData.error?.reason || '-'}\nscopes: ${grantedScopes}\nuid: ${userProfile.id}`;
+            const el = document.getElementById('debug-out');
+            el.value = dbg; el.style.display = 'block';
+            toast('Opslaan mislukt — zie debug info hieronder', 'error');
             btn.disabled = false; btn.textContent = 'Opslaan in Spotify'; return;
         }
 
