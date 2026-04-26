@@ -179,7 +179,7 @@
             margin-bottom: 7px;
         }
 
-        input[type="text"] {
+        input[type="text"], select {
             width: 100%;
             background: var(--surface2);
             border: 1px solid var(--border);
@@ -190,8 +190,10 @@
             font-family: var(--font);
             outline: none;
             transition: border-color 0.15s;
+            appearance: none;
         }
-        input[type="text"]:focus { border-color: var(--green); }
+        input[type="text"]:focus, select:focus { border-color: var(--green); }
+        select option { background: var(--surface2); }
 
         /* ── Buttons ── */
         .btn-primary {
@@ -472,10 +474,10 @@
 
         <div class="save-bar">
             <div class="field">
-                <label>Opslaan als</label>
-                <input type="text" id="save-name" placeholder="Playlist naam">
+                <label>Kies een playlist</label>
+                <select id="playlist-select"><option value="">Playlists laden…</option></select>
             </div>
-            <button class="btn-save" id="btn-save" onclick="savePlaylist()">Opslaan in Spotify</button>
+            <button class="btn-save" id="btn-save" onclick="savePlaylist()">Toevoegen aan playlist</button>
         </div>
         <textarea id="debug-out" style="display:none;margin-top:14px;width:100%;background:var(--surface2);border:1px solid #d04040;color:#e06060;padding:10px;border-radius:8px;font-size:0.8rem;font-family:monospace;resize:none;height:100px" readonly></textarea>
         <button onclick="testAccess()" style="margin-top:10px;width:100%;background:none;border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem">🔍 Test Spotify toegang</button>
@@ -614,8 +616,28 @@ async function initApp() {
         document.getElementById('user-info').style.display   = 'flex';
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app-screen').style.display   = 'block';
-        document.getElementById('save-name').value = `Playlist van ${userProfile.display_name || 'mij'}`;
+        loadPlaylists();
     } catch (e) { toast('Laden mislukt: ' + e.message, 'error'); }
+}
+
+async function loadPlaylists() {
+    const sel = document.getElementById('playlist-select');
+    sel.innerHTML = '<option value="">Laden…</option>';
+    try {
+        const playlists = [];
+        let url = '/me/playlists?limit=50';
+        while (url) {
+            const data = await api(url);
+            playlists.push(...data.items);
+            url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
+        }
+        sel.innerHTML = playlists.map(p =>
+            `<option value="${p.id}">${p.name} (${p.tracks.total} nrs)</option>`
+        ).join('');
+    } catch (e) {
+        sel.innerHTML = '<option value="">Laden mislukt</option>';
+        toast('Playlists laden mislukt: ' + e.message, 'error');
+    }
 }
 
 // ── Parser ──
@@ -795,11 +817,12 @@ async function testAccess() {
     const tests = [
         ['GET /me', `https://api.spotify.com/v1/me`],
         ['GET /me/playlists', `https://api.spotify.com/v1/me/playlists?limit=1`],
-        ['POST nieuwe playlist', `https://api.spotify.com/v1/users/${userProfile.id.replace(/~/g,'%7E')}/playlists`],
+        ['POST nieuwe playlist', `https://api.spotify.com/v1/me/playlists`],
         ...(firstPlaylistId ? [['POST tracks aan bestaande', `https://api.spotify.com/v1/playlists/${firstPlaylistId}/items`]] : []),
     ];
 
-    let results = '';
+    const grantedScopes = localStorage.getItem('sp_scopes') || '(geen)';
+    let results = `Scopes: ${grantedScopes}\n\n`;
     for (const [label, url] of tests) {
         const isPost = label.startsWith('POST');
         const isAddTracks = label.includes('tracks');
@@ -812,7 +835,8 @@ async function testAccess() {
             body: isPost ? body : undefined,
         });
         const data = await res.json().catch(() => ({}));
-        results += `${label}: ${res.status} ${data.error?.message || (res.ok ? 'OK' : '')}\n`;
+        const errDetail = data.error?.message ? ` — ${data.error.message}${data.error.reason ? ` (${data.error.reason})` : ''}` : '';
+        results += `${label}: ${res.status} ${res.ok ? 'OK' : 'Forbidden'}${errDetail}\n`;
         if (isPost && res.ok && !isAddTracks) {
             // Delete the test playlist immediately
             await fetch(`https://api.spotify.com/v1/playlists/${data.id}/followers`, {
@@ -827,47 +851,30 @@ async function testAccess() {
 async function savePlaylist() {
     if (!foundTracks.length) { toast('Geen nummers om op te slaan.', 'error'); return; }
 
-    const name = document.getElementById('save-name').value.trim() || 'Mijn Playlist';
-    const btn  = document.getElementById('btn-save');
+    const sel = document.getElementById('playlist-select');
+    const playlistId = sel.value;
+    if (!playlistId) { toast('Kies eerst een playlist.', 'error'); return; }
+    const playlistName = sel.options[sel.selectedIndex].text;
+
+    const btn = document.getElementById('btn-save');
     btn.disabled = true;
-    btn.textContent = 'Opslaan...';
+    btn.textContent = 'Toevoegen...';
 
     try {
-        const grantedScopes = localStorage.getItem('sp_scopes') || '';
-        const token = await getToken();
-
-        // Raw fetch so we can see the full Spotify response
-        const rawRes = await fetch(`https://api.spotify.com/v1/users/${userProfile.id.replace(/~/g,'%7E')}/playlists`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, public: true }),
-        });
-        const rawData = await rawRes.json();
-
-        if (!rawRes.ok) {
-            const dbg = `status: ${rawRes.status}\nmessage: ${rawData.error?.message}\nreason: ${rawData.error?.reason || '-'}\nscopes: ${grantedScopes}\nuid: ${userProfile.id}\nemail: ${userProfile.email}`;
-            const el = document.getElementById('debug-out');
-            el.value = dbg; el.style.display = 'block';
-            toast('Opslaan mislukt — zie debug info hieronder', 'error');
-            btn.disabled = false; btn.textContent = 'Opslaan in Spotify'; return;
-        }
-
-        const playlist = rawData;
-
         const uris = foundTracks.map(e => e.track.uri);
         for (let i = 0; i < uris.length; i += 100) {
-            await api(`/playlists/${playlist.id}/items`, {
+            await api(`/playlists/${playlistId}/items`, {
                 method: 'POST',
                 body: JSON.stringify({ uris: uris.slice(i, i + 100) }),
             });
         }
-
-        toast(`✓ "${name}" opgeslagen in Spotify!`, 'success');
+        toast(`✓ ${foundTracks.length} nummers toegevoegd aan "${playlistName}"!`, 'success');
+        loadPlaylists();
     } catch (e) {
         toast('Opslaan mislukt: ' + e.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Opslaan in Spotify';
+        btn.textContent = 'Toevoegen aan playlist';
     }
 }
 
