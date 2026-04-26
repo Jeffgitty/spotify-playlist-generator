@@ -543,6 +543,7 @@ async function handleCallback() {
 function storeTokens(data) {
     localStorage.setItem('sp_token',   data.access_token);
     localStorage.setItem('sp_expires', Date.now() + data.expires_in * 1000);
+    localStorage.setItem('sp_scopes',  data.scope || '');
     if (data.refresh_token) localStorage.setItem('sp_refresh', data.refresh_token);
 }
 
@@ -779,9 +780,16 @@ async function savePlaylist() {
     btn.textContent = 'Opslaan...';
 
     try {
-        const playlist = await api(`/users/${userProfile.id}/playlists`, {
+        const grantedScopes = localStorage.getItem('sp_scopes') || '';
+        const hasScope = grantedScopes.includes('playlist-modify');
+        if (!hasScope) {
+            toast(`Geen playlist-rechten. Log opnieuw in. (scopes: ${grantedScopes || 'leeg'})`, 'error');
+            btn.disabled = false; btn.textContent = 'Opslaan in Spotify'; return;
+        }
+
+        const playlist = await api(`/users/${encodeURIComponent(userProfile.id)}/playlists`, {
             method: 'POST',
-            body: JSON.stringify({ name, description: 'Gegenereerd met PlaylistGen', public: false }),
+            body: JSON.stringify({ name, description: 'Gegenereerd met PlaylistGen', public: true }),
         });
 
         const uris = foundTracks.map(e => e.track.uri);
