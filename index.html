@@ -520,7 +520,7 @@
                 </select>
             </div>
         </div>
-        <button class="btn-primary" id="btn-generate" onclick="generatePlaylist()">Genereer playlist</button>
+        <button class="btn-primary" id="btn-generate" onclick="generateWithAI()">Genereer met AI</button>
     </div>
 
     <div class="or-divider">of plak zelf een lijst</div>
@@ -872,78 +872,66 @@ async function parseAndSearch() {
     document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// ── Generator ──
+// ── AI Generator (Pollinations.ai) ──
 
-function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-}
-
-async function fetchSearchPool(q, needed) {
-    const pool = [];
-    for (let offset = 0; offset < needed && pool.length < needed; offset += 50) {
-        const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=50&offset=${offset}`);
-        const items = (data.tracks?.items || []).filter(Boolean);
-        pool.push(...items);
-        if (items.length < 50) break;
-    }
-    return pool;
-}
-
-async function generatePlaylist() {
+async function generateWithAI() {
     const genre    = document.getElementById('gen-genre').value;
     const yearFrom = document.getElementById('gen-year-from').value.trim();
     const yearTo   = document.getElementById('gen-year-to').value.trim();
     const theme    = document.getElementById('gen-theme').value.trim();
     const count    = parseInt(document.getElementById('gen-count').value);
 
-    const yearFilter  = (yearFrom || yearTo) ? `year:${yearFrom || '1900'}-${yearTo || '2025'}` : '';
-    const textParts   = [theme, genre].filter(Boolean);
+    const lines = [];
+    lines.push(`Generate a playlist of exactly ${count} songs.`);
+    if (genre)              lines.push(`Genre: ${genre}`);
+    if (yearFrom && yearTo) lines.push(`Year range: ${yearFrom}–${yearTo}`);
+    else if (yearFrom)      lines.push(`From year: ${yearFrom}`);
+    else if (yearTo)        lines.push(`Up to year: ${yearTo}`);
+    if (theme)              lines.push(`Mood/theme: ${theme}`);
+    lines.push('');
+    lines.push('Return ONLY a numbered list in this exact format, nothing else:');
+    lines.push('1. Artist Name - Song Title');
+    lines.push('2. Artist Name - Song Title');
 
-    // Progressieve fallback: meer filters → minder filters
-    const queries = [];
-    if (textParts.length && yearFilter) queries.push([...textParts, yearFilter].join(' '));
-    if (textParts.length)               queries.push(textParts.join(' '));
-    if (yearFilter)                     queries.push(yearFilter);
-    queries.push('tag:new');
+    const prompt = lines.join('\n');
 
     const btn = document.getElementById('btn-generate');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Genereren…';
+    btn.innerHTML = '<span class="spinner"></span>AI genereert lijst…';
 
     try {
-        const needed = Math.min(count * 4, 200);
-        let pool = [];
-        let lastErr = '';
-        for (const q of queries) {
-            try {
-                pool = await fetchSearchPool(q, needed);
-                if (pool.length >= 5) break;
-            } catch (e) { lastErr = e.message; }
-        }
+        const res = await fetch('https://text.pollinations.ai/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'openai',
+                messages: [{ role: 'user', content: prompt }],
+                seed: Math.floor(Math.random() * 99999),
+            }),
+        });
 
-        if (!pool.length) { toast('Geen resultaten: ' + (lastErr || 'onbekende fout'), 'error'); return; }
+        if (!res.ok) throw new Error(`AI fout: ${res.status}`);
 
-        shuffle(pool);
-        const seen = new Set();
-        const unique = pool.filter(t => { if (seen.has(t.uri)) return false; seen.add(t.uri); return true; });
+        const raw = await res.text();
 
-        foundTracks = unique.slice(0, count).map(t => ({
-            track: t,
-            original: `${t.artists[0]?.name || ''} - ${t.name}`,
-        }));
+        // Pollinations kan plain text of OpenAI JSON teruggeven
+        let content = raw;
+        try {
+            const json = JSON.parse(raw);
+            content = json.choices?.[0]?.message?.content || raw;
+        } catch { /* plain text */ }
 
-        renderResults([]);
-        document.getElementById('results-card').style.display = 'block';
-        document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        toast(`✓ ${foundTracks.length} nummers gegenereerd!`, 'success');
+        if (!content.trim()) throw new Error('AI gaf een lege reactie');
+
+        // Gebruik bestaande parser + Spotify-zoekopdracht
+        document.getElementById('paste-input').value = content;
+        await parseAndSearch();
+
     } catch (e) {
-        toast('Genereren mislukt: ' + e.message, 'error');
+        toast('AI genereren mislukt: ' + e.message, 'error');
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Genereer playlist';
+        btn.textContent = 'Genereer met AI';
     }
 }
 
