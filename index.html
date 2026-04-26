@@ -785,23 +785,35 @@ async function testAccess() {
     out.style.display = 'block';
     out.value = 'Testen...';
 
+    // Get first existing playlist for add-tracks test
+    const plRes = await fetch('https://api.spotify.com/v1/me/playlists?limit=1', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const plData = await plRes.json().catch(() => ({}));
+    const firstPlaylistId = plData.items?.[0]?.id;
+
     const tests = [
         ['GET /me', `https://api.spotify.com/v1/me`],
         ['GET /me/playlists', `https://api.spotify.com/v1/me/playlists?limit=1`],
-        ['POST playlist', `https://api.spotify.com/v1/users/${userProfile.id.replace(/~/g,'%7E')}/playlists`],
+        ['POST nieuwe playlist', `https://api.spotify.com/v1/users/${userProfile.id.replace(/~/g,'%7E')}/playlists`],
+        ...(firstPlaylistId ? [['POST tracks aan bestaande', `https://api.spotify.com/v1/playlists/${firstPlaylistId}/tracks`]] : []),
     ];
 
     let results = '';
     for (const [label, url] of tests) {
         const isPost = label.startsWith('POST');
+        const isAddTracks = label.includes('tracks');
+        const body = isAddTracks
+            ? JSON.stringify({ uris: ['spotify:track:4iV5W9uYEdYUVa79Axb7Rh'] })
+            : JSON.stringify({ name: 'test', public: false });
         const res = await fetch(url, {
             method: isPost ? 'POST' : 'GET',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: isPost ? JSON.stringify({ name: 'test', public: false }) : undefined,
+            body: isPost ? body : undefined,
         });
         const data = await res.json().catch(() => ({}));
         results += `${label}: ${res.status} ${data.error?.message || (res.ok ? 'OK' : '')}\n`;
-        if (isPost && res.ok) {
+        if (isPost && res.ok && !isAddTracks) {
             // Delete the test playlist immediately
             await fetch(`https://api.spotify.com/v1/playlists/${data.id}/followers`, {
                 method: 'DELETE',
