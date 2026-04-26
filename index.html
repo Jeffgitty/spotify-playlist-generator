@@ -881,6 +881,19 @@ function shuffle(arr) {
     }
 }
 
+async function fetchSearchPool(q, needed) {
+    const pool = [];
+    for (let offset = 0; offset < needed && pool.length < needed; offset += 50) {
+        try {
+            const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=50&offset=${offset}`);
+            const items = (data.tracks?.items || []).filter(Boolean);
+            pool.push(...items);
+            if (items.length < 50) break;
+        } catch { break; }
+    }
+    return pool;
+}
+
 async function generatePlaylist() {
     const genre    = document.getElementById('gen-genre').value;
     const yearFrom = document.getElementById('gen-year-from').value.trim();
@@ -888,30 +901,29 @@ async function generatePlaylist() {
     const theme    = document.getElementById('gen-theme').value.trim();
     const count    = parseInt(document.getElementById('gen-count').value);
 
-    const parts = [];
-    if (theme) parts.push(theme);
-    if (genre) parts.push(genre);
-    if (yearFrom || yearTo) parts.push(`year:${yearFrom || '1900'}-${yearTo || '2025'}`);
-    if (!parts.length) parts.push('tag:new');
-    const q = parts.join(' ');
+    const yearFilter  = (yearFrom || yearTo) ? `year:${yearFrom || '1900'}-${yearTo || '2025'}` : '';
+    const textParts   = [theme, genre].filter(Boolean);
+
+    // Progressieve fallback: meer filters → minder filters
+    const queries = [];
+    if (textParts.length && yearFilter) queries.push([...textParts, yearFilter].join(' '));
+    if (textParts.length)               queries.push(textParts.join(' '));
+    if (yearFilter)                     queries.push(yearFilter);
+    queries.push('tag:new');
 
     const btn = document.getElementById('btn-generate');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Genereren…';
 
     try {
-        const pool = [];
         const needed = Math.min(count * 4, 200);
-        for (let offset = 0; offset < needed; offset += 50) {
-            try {
-                const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=50&offset=${offset}`);
-                const items = (data.tracks?.items || []).filter(Boolean);
-                pool.push(...items);
-                if (items.length < 50) break;
-            } catch { break; }
+        let pool = [];
+        for (const q of queries) {
+            pool = await fetchSearchPool(q, needed);
+            if (pool.length >= 5) break;
         }
 
-        if (!pool.length) { toast('Geen nummers gevonden voor deze combinatie.', 'error'); return; }
+        if (!pool.length) { toast('Geen nummers gevonden. Probeer andere zoektermen.', 'error'); return; }
 
         shuffle(pool);
         const seen = new Set();
