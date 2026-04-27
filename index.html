@@ -760,9 +760,13 @@
                     <label>Sfeer / Thema</label>
                     <input type="text" id="gen-theme" placeholder="bijv. chill, kerst, workout, romantisch…">
                 </div>
-                <div class="field" style="grid-column: span 2">
+                <div class="field">
+                    <label>Artiest</label>
+                    <input type="text" id="gen-artist-by" placeholder="bijv. ABBA, Rammstein…">
+                </div>
+                <div class="field">
                     <label>In de stijl van</label>
-                    <input type="text" id="gen-artist" placeholder="bijv. The Beatles, Adele, Drake…">
+                    <input type="text" id="gen-artist" placeholder="bijv. The Beatles, Adele…">
                 </div>
             </div>
             <button class="btn-primary" id="btn-generate" onclick="generateWithAI()">Genereer met AI</button>
@@ -1033,13 +1037,9 @@ async function loadPlaylists() {
             playlists.push(...(data.items || []).filter(Boolean));
             url = data.next ? data.next.replace('https://api.spotify.com/v1', '') : null;
         }
-        const myId     = userProfile?.id;
-        const owned    = playlists.filter(p => !myId || !p.owner?.id || p.owner.id === myId);
-        const followed = playlists.filter(p =>  myId &&  p.owner?.id && p.owner.id !== myId);
         sel.innerHTML =
             '<option value="__new__">+ Nieuwe playlist aanmaken</option>' +
-            (owned.length    ? '<option disabled>── Jouw playlists ──</option>'    + owned.map(p    => `<option value="${p.id}">${p.name}</option>`).join('') : '') +
-            (followed.length ? '<option disabled>── Gevolgd (alleen toevoegen) ──</option>' + followed.map(p => `<option value="${p.id}">${p.name}</option>`).join('') : '');
+            (playlists.length ? '<option disabled>── Playlists ──</option>' + playlists.map(p => `<option value="${p.id}">${p.name}</option>`).join('') : '');
         onPlaylistSelect();
     } catch (e) {
         sel.innerHTML = '<option value="">Laden mislukt: ' + e.message + '</option>';
@@ -1253,16 +1253,17 @@ async function regenTrack(i) {
 // ── AI Generator (Pollinations.ai) ──
 
 async function generateWithAI() {
-    const genre    = document.getElementById('gen-genre').value;
-    const yearFrom = document.getElementById('gen-year-from').value.trim();
-    const yearTo   = document.getElementById('gen-year-to').value.trim();
-    const theme    = document.getElementById('gen-theme').value.trim();
-    const artist   = document.getElementById('gen-artist').value.trim();
-    const lang     = document.getElementById('gen-lang').value;
-    const tempo    = document.getElementById('gen-tempo').value;
-    const count    = Math.min(100, Math.max(1, parseInt(document.getElementById('gen-count').value) || 20));
+    const genre     = document.getElementById('gen-genre').value;
+    const yearFrom  = document.getElementById('gen-year-from').value.trim();
+    const yearTo    = document.getElementById('gen-year-to').value.trim();
+    const theme     = document.getElementById('gen-theme').value.trim();
+    const artistBy  = document.getElementById('gen-artist-by').value.trim();
+    const artist    = document.getElementById('gen-artist').value.trim();
+    const lang      = document.getElementById('gen-lang').value;
+    const tempo     = document.getElementById('gen-tempo').value;
+    const count     = Math.min(100, Math.max(1, parseInt(document.getElementById('gen-count').value) || 20));
 
-    _lastGenParams = { genre, yearFrom, yearTo, theme, artist: document.getElementById('gen-artist').value.trim(), lang, tempo };
+    _lastGenParams = { genre, yearFrom, yearTo, theme, artistBy, artist, lang, tempo };
 
     const lines = [];
     lines.push(`Generate a playlist of exactly ${count} songs.`);
@@ -1271,6 +1272,7 @@ async function generateWithAI() {
     else if (yearFrom)      lines.push(`From year: ${yearFrom}`);
     else if (yearTo)        lines.push(`Up to year: ${yearTo}`);
     if (theme)              lines.push(`Mood/theme: ${theme}`);
+    if (artistBy)           lines.push(`Only include songs by the artist: ${artistBy}`);
     if (artist)             lines.push(`In the style of: ${artist}`);
     if (lang)               lines.push(`Language: songs must be in ${lang}`);
     if (tempo)              lines.push(`Tempo: ${tempo}`);
