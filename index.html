@@ -45,12 +45,7 @@
         .logo span { color: var(--green); }
 
         .user-info { display: flex; align-items: center; gap: 12px; font-size: 0.88rem; }
-
-        .user-info img {
-            width: 32px; height: 32px;
-            border-radius: 50%; object-fit: cover;
-        }
-
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
         .user-name { color: var(--text); font-weight: 500; }
 
         .btn-sm {
@@ -131,6 +126,29 @@
             color: var(--muted);
             margin-bottom: 16px;
         }
+
+        /* ── Input tabs ── */
+        .tab-bar {
+            display: flex;
+            margin-bottom: 22px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .input-tab {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--muted);
+            padding: 8px 16px;
+            font-size: 0.88rem;
+            font-family: var(--font);
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: -1px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .input-tab:hover { color: var(--text); }
+        .input-tab.active { color: var(--green); border-bottom-color: var(--green); }
 
         /* ── Hint text ── */
         .hint {
@@ -233,7 +251,7 @@
         }
 
         /* ── Track list ── */
-        .tracks { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+        .tracks { display: flex; flex-direction: column; gap: 6px; }
 
         .track {
             display: flex;
@@ -353,7 +371,7 @@
             background: var(--surface3);
             border-radius: 9px;
             padding: 10px;
-            margin-bottom: 4px;
+            margin-top: 2px;
         }
         .swap-search { display: flex; gap: 8px; margin-bottom: 8px; }
         .swap-search input { flex: 1; }
@@ -387,20 +405,6 @@
         .swap-option-name { font-size:0.85rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .swap-option-artist { font-size:0.75rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-        .search-result {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 10px;
-            border-radius: 9px;
-            background: var(--surface2);
-            margin-bottom: 6px;
-        }
-        .search-result img { width:42px; height:42px; border-radius:5px; object-fit:cover; flex-shrink:0; }
-        .search-result-img { width:42px; height:42px; border-radius:5px; background:var(--surface3); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
-        .search-result-info { flex:1; min-width:0; }
-        .search-result-name { font-size:0.92rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .search-result-artist { font-size:0.8rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .btn-add {
             background: none;
             border: 1px solid var(--green);
@@ -430,16 +434,16 @@
         .drag-handle:active { cursor: grabbing; }
         .track.drag-over { outline: 1px dashed var(--green); background: var(--surface3); }
 
-        /* ── Save bar ── */
-        .save-bar {
+        /* ── Destination bar ── */
+        .dest-bar {
             display: flex;
             gap: 12px;
             align-items: flex-end;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
         }
-
-        .save-bar > .field { flex: 1; margin-bottom: 0; }
+        .dest-bar > .field { flex: 1; margin-bottom: 0; }
 
         .btn-save {
             background: var(--green);
@@ -458,11 +462,16 @@
         .btn-save:hover:not(:disabled) { background: #1ed760; }
         .btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
 
-        /* ── Progress ── */
-        .progress-wrap {
-            margin-top: 14px;
-            display: none;
+        /* ── Empty state ── */
+        .empty-state {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.88rem;
+            padding: 24px 0 8px;
         }
+
+        /* ── Progress ── */
+        .progress-wrap { margin-top: 14px; display: none; }
 
         .progress-bar-bg {
             background: var(--surface2);
@@ -480,11 +489,7 @@
             width: 0%;
         }
 
-        .progress-label {
-            font-size: 0.8rem;
-            color: var(--muted);
-            text-align: center;
-        }
+        .progress-label { font-size: 0.8rem; color: var(--muted); text-align: center; }
 
         /* ── Spinner ── */
         .spinner {
@@ -528,30 +533,9 @@
             margin-bottom: 4px;
         }
 
-        .year-range {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .year-range { display: flex; align-items: center; gap: 8px; }
         .year-range input { flex: 1; }
         .year-range span { color: var(--muted); flex-shrink: 0; font-size: 1rem; }
-
-        .or-divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--muted);
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin: 0 0 16px;
-        }
-        .or-divider::before, .or-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
 
         /* ── Light theme ── */
         [data-theme="light"] {
@@ -588,9 +572,7 @@
         .settings-btn.open { color: var(--green); border-color: var(--green); }
 
         /* ── Settings panel ── */
-        .settings-overlay {
-            position: fixed; inset: 0; z-index: 198; display: none;
-        }
+        .settings-overlay { position: fixed; inset: 0; z-index: 198; display: none; }
         .settings-overlay.open { display: block; }
 
         .settings-panel {
@@ -609,9 +591,8 @@
             transition: all 0.18s ease;
             overflow: hidden;
         }
-        .settings-panel.open {
-            transform: none; opacity: 1; pointer-events: all;
-        }
+        .settings-panel.open { transform: none; opacity: 1; pointer-events: all; }
+
         .settings-head {
             font-size: 0.72rem;
             font-weight: 700;
@@ -621,6 +602,7 @@
             padding: 14px 18px 10px;
             border-bottom: 1px solid var(--border);
         }
+
         .settings-item {
             display: flex;
             align-items: center;
@@ -644,7 +626,6 @@
         .settings-item--danger { color: #e06060; }
         .settings-item--danger:hover { background: rgba(224,96,96,0.08); }
 
-        /* Toggle switch */
         .stoggle {
             width: 34px; height: 18px;
             border-radius: 9px;
@@ -670,8 +651,8 @@
             header { padding: 15px 18px; }
             main { padding: 24px 14px 48px; }
             .card { padding: 18px; }
-            .save-bar { flex-direction: column; }
-            .save-bar .btn-save { width: 100%; }
+            .dest-bar { flex-direction: column; }
+            .dest-bar .btn-save { width: 100%; }
             #login-screen h1 { font-size: 2rem; }
             .gen-grid { grid-template-columns: 1fr; }
         }
@@ -704,154 +685,163 @@
 <div id="app-screen">
 <main>
 
+    <!-- ── Invoer (tabbladen) ── -->
     <div class="card">
-        <div class="card-title">Genereer playlist</div>
-        <div class="gen-grid">
-            <div class="field">
-                <label>Genre</label>
-                <select id="gen-genre">
-                    <option value="">Alles</option>
-                    <option value="pop">Pop</option>
-                    <option value="rock">Rock</option>
-                    <option value="hip-hop">Hip-Hop</option>
-                    <option value="r-n-b">R&amp;B</option>
-                    <option value="electronic">Electronic</option>
-                    <option value="dance">Dance</option>
-                    <option value="jazz">Jazz</option>
-                    <option value="classical">Classical</option>
-                    <option value="latin">Latin</option>
-                    <option value="country">Country</option>
-                    <option value="metal">Metal</option>
-                    <option value="indie">Indie</option>
-                    <option value="soul">Soul</option>
-                    <option value="reggae">Reggae</option>
-                </select>
-            </div>
-            <div class="field">
-                <label>Aantal nummers (max 100)</label>
-                <input type="number" id="gen-count" value="20" min="1" max="100">
-            </div>
-            <div class="field">
-                <label>Taal</label>
-                <input type="text" id="gen-lang" placeholder="bijv. Nederlands, Engels…" list="lang-list">
-                <datalist id="lang-list">
-                    <option value="Dutch">
-                    <option value="English">
-                    <option value="Spanish">
-                    <option value="French">
-                    <option value="German">
-                    <option value="Italian">
-                    <option value="Portuguese">
-                    <option value="Japanese">
-                    <option value="Korean">
-                    <option value="Arabic">
-                    <option value="Hindi">
-                    <option value="Swedish">
-                    <option value="Turkish">
-                </datalist>
-            </div>
-            <div class="field">
-                <label>Tempo</label>
-                <select id="gen-tempo">
-                    <option value="">Geen voorkeur</option>
-                    <option value="slow and calm">Langzaam</option>
-                    <option value="medium tempo">Normaal</option>
-                    <option value="fast and energetic">Snel</option>
-                </select>
-            </div>
-            <div class="field" style="grid-column: span 2">
-                <label>Jaartal</label>
-                <div class="year-range">
-                    <input type="number" id="gen-year-from" placeholder="Van" min="1900" max="2025">
-                    <span>–</span>
-                    <input type="number" id="gen-year-to" placeholder="Tot" min="1900" max="2025">
+        <div class="tab-bar">
+            <button class="input-tab active" data-tab="ai" onclick="switchInputTab('ai')">AI Generator</button>
+            <button class="input-tab" data-tab="search" onclick="switchInputTab('search')">Zoeken</button>
+            <button class="input-tab" data-tab="paste" onclick="switchInputTab('paste')">Plakken</button>
+        </div>
+
+        <!-- AI panel -->
+        <div class="input-panel" id="panel-ai">
+            <div class="gen-grid">
+                <div class="field">
+                    <label>Genre</label>
+                    <select id="gen-genre">
+                        <option value="">Alles</option>
+                        <option value="pop">Pop</option>
+                        <option value="rock">Rock</option>
+                        <option value="hip-hop">Hip-Hop</option>
+                        <option value="r-n-b">R&amp;B</option>
+                        <option value="electronic">Electronic</option>
+                        <option value="dance">Dance</option>
+                        <option value="jazz">Jazz</option>
+                        <option value="classical">Classical</option>
+                        <option value="latin">Latin</option>
+                        <option value="country">Country</option>
+                        <option value="metal">Metal</option>
+                        <option value="indie">Indie</option>
+                        <option value="soul">Soul</option>
+                        <option value="reggae">Reggae</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Aantal nummers (max 100)</label>
+                    <input type="number" id="gen-count" value="20" min="1" max="100">
+                </div>
+                <div class="field">
+                    <label>Taal</label>
+                    <input type="text" id="gen-lang" placeholder="bijv. Nederlands, Engels…" list="lang-list">
+                    <datalist id="lang-list">
+                        <option value="Dutch">
+                        <option value="English">
+                        <option value="Spanish">
+                        <option value="French">
+                        <option value="German">
+                        <option value="Italian">
+                        <option value="Portuguese">
+                        <option value="Japanese">
+                        <option value="Korean">
+                        <option value="Arabic">
+                        <option value="Hindi">
+                        <option value="Swedish">
+                        <option value="Turkish">
+                    </datalist>
+                </div>
+                <div class="field">
+                    <label>Tempo</label>
+                    <select id="gen-tempo">
+                        <option value="">Geen voorkeur</option>
+                        <option value="slow and calm">Langzaam</option>
+                        <option value="medium tempo">Normaal</option>
+                        <option value="fast and energetic">Snel</option>
+                    </select>
+                </div>
+                <div class="field" style="grid-column: span 2">
+                    <label>Jaartal</label>
+                    <div class="year-range">
+                        <input type="number" id="gen-year-from" placeholder="Van" min="1900" max="2025">
+                        <span>–</span>
+                        <input type="number" id="gen-year-to" placeholder="Tot" min="1900" max="2025">
+                    </div>
+                </div>
+                <div class="field" style="grid-column: span 2">
+                    <label>Sfeer / Thema</label>
+                    <input type="text" id="gen-theme" placeholder="bijv. chill, kerst, workout, romantisch…">
+                </div>
+                <div class="field" style="grid-column: span 2">
+                    <label>In de stijl van</label>
+                    <input type="text" id="gen-artist" placeholder="bijv. The Beatles, Adele, Drake…">
                 </div>
             </div>
-            <div class="field" style="grid-column: span 2">
-                <label>Sfeer / Thema</label>
-                <input type="text" id="gen-theme" placeholder="bijv. chill, kerst, workout, romantisch…">
+            <button class="btn-primary" id="btn-generate" onclick="generateWithAI()">Genereer met AI</button>
+        </div>
+
+        <!-- Zoeken panel -->
+        <div class="input-panel" id="panel-search" style="display:none">
+            <div style="display:flex;gap:8px">
+                <input type="text" id="custom-search-input" placeholder="bijv. The Beatles, jazz piano, Adele Hello…" onkeydown="if(event.key==='Enter')customSearch()" style="flex:1">
+                <button class="btn-save" onclick="customSearch()" id="btn-custom-search">Zoek</button>
             </div>
-            <div class="field" style="grid-column: span 2">
-                <label>In de stijl van</label>
-                <input type="text" id="gen-artist" placeholder="bijv. The Beatles, Adele, Drake…">
-            </div>
         </div>
-        <button class="btn-primary" id="btn-generate" onclick="generateWithAI()">Genereer met AI</button>
-    </div>
 
-    <div class="or-divider">of zoek zelf</div>
-
-    <div class="card">
-        <div class="card-title">Eigen zoekopdracht</div>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-            <input type="text" id="custom-search-input" placeholder="bijv. The Beatles, jazz piano, Adele Hello…" onkeydown="if(event.key==='Enter')customSearch()" style="flex:1">
-            <button class="btn-save" onclick="customSearch()" id="btn-custom-search">Zoek</button>
-        </div>
-        <div id="custom-search-results"></div>
-    </div>
-
-    <div class="card" id="staging-card" style="display:none">
-        <div class="results-header">
-            <div class="card-title" style="margin-bottom:0">Gevonden nummers <span id="staging-count" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:0.88rem;font-weight:400"></span></div>
-            <button class="btn-add-all" onclick="stagingAddAll()">Voeg alles toe</button>
-        </div>
-        <div id="staging-list" class="tracks" style="margin-bottom:0"></div>
-    </div>
-
-    <div class="or-divider">of plak zelf een lijst</div>
-
-    <div class="card">
-        <div class="card-title">Plak je eigen lijst</div>
-        <p class="hint">
-            Vraag een AI om een lijst nummers, bijv: <code>"Geef me 20 kerst nummers in jazz stijl"</code><br>
-            Kopieer het antwoord en plak het hieronder. De app herkent automatisch artiest en titel.
-        </p>
-        <textarea id="paste-input" placeholder="Plak hier de lijst van je AI, bijvoorbeeld:
+        <!-- Plakken panel -->
+        <div class="input-panel" id="panel-paste" style="display:none">
+            <p class="hint">
+                Vraag een AI om een lijst nummers, bijv: <code>"Geef me 20 kerst nummers in jazz stijl"</code><br>
+                Kopieer het antwoord en plak het hieronder. De app herkent automatisch artiest en titel.
+            </p>
+            <textarea id="paste-input" placeholder="Plak hier de lijst van je AI, bijvoorbeeld:
 
 1. Frank Sinatra - Let It Snow
 2. Dean Martin - Baby It's Cold Outside
 3. Nat King Cole - The Christmas Song
 ..."></textarea>
 
-        <div class="progress-wrap" id="progress-wrap">
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="progress-fill"></div>
+            <div class="progress-wrap" id="progress-wrap">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-label" id="progress-label">Zoeken...</div>
             </div>
-            <div class="progress-label" id="progress-label">Zoeken...</div>
-        </div>
 
-        <button class="btn-primary" id="btn-search" onclick="parseAndSearch()">
-            Zoek nummers op Spotify
-        </button>
+            <button class="btn-primary" id="btn-search" onclick="parseAndSearch()">
+                Zoek nummers op Spotify
+            </button>
+        </div>
     </div>
 
-    <div class="card" id="results-card" style="display:none">
+    <!-- ── Gevonden kandidaten ── -->
+    <div class="card" id="staging-card" style="display:none">
         <div class="results-header">
-            <div class="card-title" style="margin-bottom:0">
-                Gevonden <span id="found-count" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:0.88rem;font-weight:400"></span>
-            </div>
-            <span class="not-found-badge" id="not-found-badge" style="display:none"></span>
+            <div class="card-title" style="margin-bottom:0">Gevonden nummers <span id="staging-count" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:0.88rem;font-weight:400"></span></div>
+            <button class="btn-add-all" onclick="stagingAddAll()">Voeg alles toe</button>
         </div>
+        <div id="staging-list" class="tracks"></div>
+    </div>
 
-        <div class="tracks" id="tracks-list"></div>
-
-        <div class="save-bar">
+    <!-- ── Jouw playlist ── -->
+    <div class="card" id="results-card">
+        <div class="dest-bar">
             <div class="field">
-                <label>Kies een playlist</label>
+                <label>Opslaan in</label>
                 <select id="playlist-select" onchange="onPlaylistSelect()"><option value="">Laden…</option></select>
             </div>
             <button class="btn-save" id="btn-save" onclick="savePlaylist()">Opslaan</button>
         </div>
-        <div class="field" id="new-name-field" style="display:none;margin-top:12px">
+        <div class="field" id="new-name-field" style="display:none;margin-bottom:20px">
             <label>Naam nieuwe playlist</label>
             <input type="text" id="save-name" placeholder="Playlist naam">
         </div>
+
+        <div class="results-header" style="margin-bottom:12px">
+            <div class="card-title" style="margin-bottom:0">
+                Jouw playlist <span id="found-count" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:0.88rem;font-weight:400"></span>
+            </div>
+            <span class="not-found-badge" id="not-found-badge" style="display:none"></span>
+        </div>
+
+        <div id="tracks-empty" class="empty-state">Voeg nummers toe via de tabbladen hierboven.</div>
+        <div class="tracks" id="tracks-list"></div>
+
         <div class="debug-only" style="display:none">
             <textarea id="debug-out" style="display:none;margin-top:14px;width:100%;background:var(--surface2);border:1px solid #d04040;color:#e06060;padding:10px;border-radius:8px;font-size:0.8rem;font-family:monospace;resize:none;height:100px" readonly></textarea>
             <button onclick="testAccess()" style="margin-top:10px;width:100%;background:none;border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem">🔍 Test Spotify toegang</button>
         </div>
     </div>
 
+    <!-- ── Playlist inhoud ── -->
     <div class="card" id="playlist-card" style="display:none">
         <div class="results-header">
             <div class="card-title" id="playlist-card-title"></div>
@@ -1180,7 +1170,6 @@ async function parseAndSearch() {
     btn.textContent = 'Zoek nummers op Spotify';
 
     renderResults(notFound);
-    document.getElementById('results-card').style.display = 'block';
     document.getElementById('results-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -1519,8 +1508,10 @@ function renderResults(notFound = []) {
     const list    = document.getElementById('tracks-list');
     const countEl = document.getElementById('found-count');
     const nfBadge = document.getElementById('not-found-badge');
+    const emptyEl = document.getElementById('tracks-empty');
 
-    countEl.textContent = `(${foundTracks.length})`;
+    emptyEl.style.display = foundTracks.length ? 'none' : 'block';
+    countEl.textContent = foundTracks.length ? `(${foundTracks.length})` : '';
 
     if (notFound.length) {
         nfBadge.textContent = `${notFound.length} niet gevonden`;
@@ -1822,6 +1813,13 @@ function applyDebug(on) {
     document.querySelectorAll('.debug-only').forEach(el => el.style.display = on ? '' : 'none');
 }
 
+// ── Tab switching ──
+
+function switchInputTab(tab) {
+    document.querySelectorAll('.input-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.input-panel').forEach(p => p.style.display = p.id === `panel-${tab}` ? 'block' : 'none');
+}
+
 // ── Staging panel ──
 
 async function populateStaging(parsed) {
@@ -1884,7 +1882,6 @@ function stagingAdd(i) {
     stagingTracks[i].added = true;
     renderStaging();
     renderResults();
-    document.getElementById('results-card').style.display = 'block';
 }
 
 function stagingAddAll() {
@@ -1899,7 +1896,6 @@ function stagingAddAll() {
     if (!count) { toast('Alle nummers zijn al toegevoegd.'); return; }
     renderStaging();
     renderResults();
-    document.getElementById('results-card').style.display = 'block';
     toast(count + ' nummers toegevoegd', 'success');
 }
 
