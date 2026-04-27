@@ -1394,33 +1394,44 @@ function renderStaging() {
     const list = document.getElementById('staging-list');
     const countEl = document.getElementById('staging-count');
 
-    countEl.textContent = `(${stagingTracks.length})`;
+    countEl.textContent = '(' + stagingTracks.length + ')';
 
     if (!stagingTracks.length) {
         list.innerHTML = '<div class="staging-empty">Geen nummers gevonden.</div>';
         return;
     }
 
-    list.innerHTML = stagingTracks.map((entry, i) => {
+    list.innerHTML = stagingTracks.map(function(entry, i) {
         const t       = entry.track;
         const art     = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
         const artists = t.artists.map(a => esc(a.name)).join(', ');
         const dur     = fmtDur(t.duration_ms);
         const playing = i === _stagingPlayingIdx;
-        return `<div class="track${entry.added ? ' not-found' : ''}">
-            <span class="track-num">${i + 1}</span>
-            ${art ? `<img class="track-art" src="${esc(art)}" alt="">` : `<div class="track-art">🎵</div>`}
-            <div class="track-info">
-                <div class="track-name">${esc(t.name)}</div>
-                <div class="track-artist">${artists}</div>
-            </div>
-            <span class="track-dur">${dur}</span>
-            <button class="btn-preview${t.preview_url ? (playing ? ' playing' : '') : ' no-preview'}" data-staging-i="${i}" onclick="${t.preview_url ? `toggleStagingPreview(${i})` : ''}" title="${t.preview_url ? 'Preview' : 'Geen preview'}">${playing ? '⏸' : '▶'}</button>
-            ${stagingIsAI ? `<button class="btn-regen" data-staging-regen="${i}" onclick="regenStagingTrack(${i})" title="Hergenereer via AI">↺</button>` : ''}
-            <button class="btn-add${entry.added ? ' added' : ''}" onclick="addStagingTrack(${i})" ${entry.added ? 'disabled' : ''}>
-                ${entry.added ? '✓ Toegevoegd' : '+ Voeg toe'}
-            </button>
-        </div>`;
+        const artHtml = art
+            ? '<img class="track-art" src="' + esc(art) + '" alt="">'
+            : '<div class="track-art">🎵</div>';
+        const previewCls = 'btn-preview' + (t.preview_url ? (playing ? ' playing' : '') : ' no-preview');
+        const previewClick = t.preview_url ? 'toggleStagingPreview(' + i + ')' : '';
+        const previewTitle = t.preview_url ? 'Preview' : 'Geen preview';
+        const previewIcon  = playing ? '⏸' : '▶';
+        const regenBtn = stagingIsAI
+            ? '<button class="btn-regen" data-staging-regen="' + i + '" onclick="regenStagingTrack(' + i + ')" title="Hergenereer via AI">↺</button>'
+            : '';
+        const addCls   = 'btn-add' + (entry.added ? ' added' : '');
+        const addLabel = entry.added ? '✓ Toegevoegd' : '+ Voeg toe';
+        const disabled = entry.added ? 'disabled' : '';
+        return '<div class="track' + (entry.added ? ' not-found' : '') + '">'
+            + '<span class="track-num">' + (i + 1) + '</span>'
+            + artHtml
+            + '<div class="track-info">'
+            +   '<div class="track-name">' + esc(t.name) + '</div>'
+            +   '<div class="track-artist">' + artists + '</div>'
+            + '</div>'
+            + '<span class="track-dur">' + dur + '</span>'
+            + '<button class="' + previewCls + '" data-staging-i="' + i + '" onclick="' + previewClick + '" title="' + previewTitle + '">' + previewIcon + '</button>'
+            + regenBtn
+            + '<button class="' + addCls + '" onclick="addStagingTrack(' + i + ')" ' + disabled + '>' + addLabel + '</button>'
+            + '</div>';
     }).join('');
 }
 
