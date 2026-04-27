@@ -416,6 +416,8 @@
         }
         .btn-add:hover { background: var(--green); color: #000; }
         .btn-add.added { background: var(--surface3); border-color: var(--border); color: var(--muted); cursor: default; }
+        .btn-add-all { background:var(--green); color:#000; font-weight:700; padding:7px 18px; border-radius:50px; border:none; cursor:pointer; font-size:0.85rem; font-family:var(--font); white-space:nowrap; transition:all 0.15s; }
+        .btn-add-all:hover { background:#1ed760; }
 
         .drag-handle {
             color: var(--muted);
@@ -788,6 +790,14 @@
         <div id="custom-search-results"></div>
     </div>
 
+    <div class="card" id="staging-card" style="display:none">
+        <div class="results-header">
+            <div class="card-title" style="margin-bottom:0">Gevonden nummers <span id="staging-count" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:0.88rem;font-weight:400"></span></div>
+            <button class="btn-add-all" onclick="stagingAddAll()">Voeg alles toe</button>
+        </div>
+        <div id="staging-list" class="tracks" style="margin-bottom:0"></div>
+    </div>
+
     <div class="or-divider">of plak zelf een lijst</div>
 
     <div class="card">
@@ -893,7 +903,10 @@ const REDIRECT_URI = 'https://jeffgitty.github.io/spotify-playlist-generator';
 const SCOPES       = 'user-read-private user-read-email playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private';
 
 let userProfile = null;
-let foundTracks = []; // {track: SpotifyTrack, original: string} — only successfully found tracks
+let foundTracks = []; // {track, original} — tracks from textarea, saved to Spotify
+let stagingTracks = []; // {track, original, added} — tracks from AI / zoekfunctie
+let stagingIsAI = false;
+let _stagingAudioIdx = null;
 
 // ── Auth: PKCE ──
 
@@ -1314,9 +1327,10 @@ async function generateWithAI() {
             return;
         }
 
-        // Gebruik bestaande parser + Spotify-zoekopdracht
-        document.getElementById('paste-input').value = content;
-        await parseAndSearch();
+        stagingIsAI = true;
+        stagingTracks = [];
+        _stagingAudioIdx = null;
+        await populateStaging(parsed);
 
     } catch (e) {
         toast('AI genereren mislukt: ' + e.message, 'error');
@@ -1544,8 +1558,6 @@ function renderResults(notFound = []) {
             </div>
             ${isDup ? '<span class="track-dup-badge">dubbel</span>' : ''}
             <span class="track-dur">${dur}</span>
-            <button class="btn-preview${t.preview_url ? '' : ' no-preview'}" data-i="${i}" onclick="${t.preview_url ? `togglePreview(${i})` : ''}" title="${t.preview_url ? 'Preview' : 'Geen preview'}">▶</button>
-            <button class="btn-regen" data-regen="${i}" onclick="regenTrack(${i})" title="Hergenereer via AI">↺</button>
             <button class="btn-swap" onclick="openSwap(${i})" title="Wissel nummer">↩</button>
             <button class="btn-remove" data-i="${i}" onclick="removeTrack(this.dataset.i)" title="Verwijder">✕</button>
         </div>
@@ -1561,63 +1573,32 @@ function renderResults(notFound = []) {
 
 // ── Eigen zoekopdracht ──
 
-let _customResults = [];
-
 async function customSearch() {
-    const q = document.getElementById('custom-search-input').value.trim();
+    var q = document.getElementById('custom-search-input').value.trim();
     if (!q) return;
-
-    const btn = document.getElementById('btn-custom-search');
-    const out = document.getElementById('custom-search-results');
+    var btn = document.getElementById('btn-custom-search');
     btn.disabled = true;
     btn.textContent = 'Zoeken…';
-    out.innerHTML = '';
-
     try {
-        const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=10`);
-        _customResults = (data.tracks?.items || []).filter(Boolean);
-
-        if (!_customResults.length) {
-            out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:4px 0">Geen resultaten gevonden.</div>';
-            return;
-        }
-
-        const addedUris = new Set(foundTracks.map(e => e.track.uri));
-
-        out.innerHTML = _customResults.map((t, j) => {
-            const art     = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
-            const artists = t.artists.map(a => esc(a.name)).join(', ');
-            const added   = addedUris.has(t.uri);
-            return `<div class="search-result" id="sr-${j}">
-                ${art ? `<img src="${esc(art)}" alt="">` : '<div class="search-result-img">🎵</div>'}
-                <div class="search-result-info">
-                    <div class="search-result-name">${esc(t.name)}</div>
-                    <div class="search-result-artist">${artists}</div>
-                </div>
-                <button class="btn-add${added ? ' added' : ''}" id="btn-add-${j}" onclick="addCustomTrack(${j})" ${added ? 'disabled' : ''}>
-                    ${added ? '✓ Toegevoegd' : '+ Voeg toe'}
-                </button>
-            </div>`;
-        }).join('');
-
-    } catch (e) {
-        out.innerHTML = `<div style="color:#e06060;font-size:0.85rem">Fout: ${esc(e.message)}</div>`;
+        var data = await api('/search?q=' + encodeURIComponent(q) + '&type=track&limit=10');
+        var items = (data.tracks && data.tracks.items) ? data.tracks.items.filter(Boolean) : [];
+        if (!items.length) { toast('Geen resultaten gevonden.', 'error'); return; }
+        var addedUris = new Set(foundTracks.map(function(e) { return e.track.uri; }));
+        stagingIsAI = false;
+        stagingTracks = items.map(function(t) {
+            return { track: t, original: (t.artists[0] ? t.artists[0].name : '') + ' - ' + t.name, added: addedUris.has(t.uri) };
+        });
+        _stagingAudioIdx = null;
+        var card = document.getElementById('staging-card');
+        card.style.display = 'block';
+        renderStaging();
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch(e) {
+        toast('Fout: ' + e.message, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Zoek';
     }
-}
-
-function addCustomTrack(j) {
-    const track = _customResults[j];
-    if (!track) return;
-    foundTracks.push({ track, original: `${track.artists[0]?.name || ''} - ${track.name}` });
-
-    const btn = document.getElementById(`btn-add-${j}`);
-    if (btn) { btn.textContent = '✓ Toegevoegd'; btn.classList.add('added'); btn.disabled = true; }
-
-    renderResults();
-    document.getElementById('results-card').style.display = 'block';
 }
 
 let _swapCache = {};
@@ -1839,6 +1820,145 @@ function toggleDebug() {
 function applyDebug(on) {
     document.getElementById('debug-toggle').classList.toggle('on', on);
     document.querySelectorAll('.debug-only').forEach(el => el.style.display = on ? '' : 'none');
+}
+
+// ── Staging panel ──
+
+async function populateStaging(parsed) {
+    var card = document.getElementById('staging-card');
+    var list = document.getElementById('staging-list');
+    var countEl = document.getElementById('staging-count');
+    card.style.display = 'block';
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px 0">Zoeken op Spotify…</div>';
+    countEl.textContent = '';
+    stagingTracks = [];
+    for (var pi = 0; pi < parsed.length; pi++) {
+        var track = await searchTrack(parsed[pi]);
+        if (track) stagingTracks.push({ track: track, original: parsed[pi].original, added: false });
+        countEl.textContent = '(' + stagingTracks.length + ' / ' + (pi + 1) + ' verwerkt)';
+    }
+    renderStaging();
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderStaging() {
+    var list = document.getElementById('staging-list');
+    var countEl = document.getElementById('staging-count');
+    countEl.textContent = '(' + stagingTracks.length + ')';
+    if (!stagingTracks.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:8px 0">Geen nummers gevonden.</div>';
+        return;
+    }
+    var html = '';
+    for (var si = 0; si < stagingTracks.length; si++) {
+        var se = stagingTracks[si];
+        var st = se.track;
+        var sart = st.album && st.album.images ? (st.album.images[2] ? st.album.images[2].url : (st.album.images[0] ? st.album.images[0].url : '')) : '';
+        var sartists = st.artists.map(function(a) { return esc(a.name); }).join(', ');
+        var sdur = fmtDur(st.duration_ms);
+        var splaying = (si === _stagingAudioIdx);
+        var sartHtml = sart ? ('<img class="track-art" src="' + esc(sart) + '" alt="">') : '<div class="track-art">&#127925;</div>';
+        var sprevCls = 'btn-preview' + (st.preview_url ? (splaying ? ' playing' : '') : ' no-preview');
+        var sprevFn = st.preview_url ? ('stagingPreview(' + si + ')') : '';
+        var sprevIcon = splaying ? '&#9208;' : '&#9654;';
+        var sregenHtml = stagingIsAI ? ('<button class="btn-regen" data-sregen="' + si + '" onclick="stagingRegen(' + si + ')" title="Hergenereer">&#8634;</button>') : '';
+        var saddCls = 'btn-add' + (se.added ? ' added' : '');
+        var sdisabled = se.added ? ' disabled' : '';
+        var saddLabel = se.added ? '&#10003; Toegevoegd' : '+ Voeg toe';
+        html += '<div class="track' + (se.added ? ' not-found' : '') + '">';
+        html += '<span class="track-num">' + (si + 1) + '</span>';
+        html += sartHtml;
+        html += '<div class="track-info"><div class="track-name">' + esc(st.name) + '</div><div class="track-artist">' + sartists + '</div></div>';
+        html += '<span class="track-dur">' + sdur + '</span>';
+        html += '<button class="' + sprevCls + '" onclick="' + sprevFn + '" title="Preview">' + sprevIcon + '</button>';
+        html += sregenHtml;
+        html += '<button class="' + saddCls + '" onclick="stagingAdd(' + si + ')"' + sdisabled + '>' + saddLabel + '</button>';
+        html += '</div>';
+    }
+    list.innerHTML = html;
+}
+
+function stagingAdd(i) {
+    if (!stagingTracks[i] || stagingTracks[i].added) return;
+    foundTracks.push({ track: stagingTracks[i].track, original: stagingTracks[i].original });
+    stagingTracks[i].added = true;
+    renderStaging();
+    renderResults();
+    document.getElementById('results-card').style.display = 'block';
+}
+
+function stagingAddAll() {
+    var count = 0;
+    for (var i = 0; i < stagingTracks.length; i++) {
+        if (!stagingTracks[i].added) {
+            foundTracks.push({ track: stagingTracks[i].track, original: stagingTracks[i].original });
+            stagingTracks[i].added = true;
+            count++;
+        }
+    }
+    if (!count) { toast('Alle nummers zijn al toegevoegd.'); return; }
+    renderStaging();
+    renderResults();
+    document.getElementById('results-card').style.display = 'block';
+    toast(count + ' nummers toegevoegd', 'success');
+}
+
+function stagingPreview(i) {
+    if (!stagingTracks[i] || !stagingTracks[i].track.preview_url) return;
+    if (_stagingAudioIdx === i) {
+        _audio.pause();
+        _stagingAudioIdx = null;
+    } else {
+        _audio.pause();
+        _playingIdx = null;
+        _audio.src = stagingTracks[i].track.preview_url;
+        _audio.play();
+        _stagingAudioIdx = i;
+        _audio.onended = function() { _stagingAudioIdx = null; renderStaging(); };
+    }
+    renderStaging();
+}
+
+async function stagingRegen(i) {
+    if (!stagingTracks[i]) return;
+    var entry = stagingTracks[i];
+    var t = entry.track;
+    var btn = document.querySelector('[data-sregen="' + i + '"]');
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    try {
+        var p = _lastGenParams;
+        var prompt = 'Suggest ONE replacement song.';
+        if (p) {
+            if (p.genre)               prompt += '\nGenre: ' + p.genre;
+            if (p.yearFrom || p.yearTo) prompt += '\nYear range: ' + (p.yearFrom || '1900') + '-' + (p.yearTo || '2025');
+            if (p.theme)               prompt += '\nMood/theme: ' + p.theme;
+            if (p.lang)                prompt += '\nLanguage: ' + p.lang;
+            if (p.tempo)               prompt += '\nTempo: ' + p.tempo;
+            if (p.artist)              prompt += '\nIn the style of: ' + p.artist;
+        }
+        prompt += '\nDo NOT suggest: "' + t.name + '" by ' + (t.artists[0] ? t.artists[0].name : '');
+        var others = stagingTracks.filter(function(e, j) { return j !== i; }).map(function(e) { return e.track.name; });
+        if (others.length) prompt += '\nAlso avoid: ' + others.join(', ');
+        prompt += '\nReturn ONLY: Artist - Song Title';
+        var res = await fetch('https://text.pollinations.ai/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: prompt }], seed: Math.floor(Math.random() * 99999) })
+        });
+        if (!res.ok) throw new Error('AI fout: ' + res.status);
+        var content = await res.text();
+        try { var j2 = JSON.parse(content); if (j2.choices && j2.choices[0]) content = j2.choices[0].message.content; } catch(ex) {}
+        var parsed = parseTracklist(content);
+        if (!parsed.length) throw new Error('AI gaf geen herkenbaar nummer terug');
+        var newTrack = await searchTrack(parsed[0]);
+        if (!newTrack) throw new Error('Nummer niet gevonden op Spotify');
+        stagingTracks[i] = { track: newTrack, original: entry.original, added: false };
+        renderStaging();
+        toast('Vervangen door "' + newTrack.name + '"', 'success');
+    } catch(e) {
+        toast('Hergenereren mislukt: ' + e.message, 'error');
+        if (btn) { btn.disabled = false; btn.innerHTML = '&#8634;'; }
+    }
 }
 
 // ── Boot ──
