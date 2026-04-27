@@ -417,34 +417,6 @@
         .btn-add:hover { background: var(--green); color: #000; }
         .btn-add.added { background: var(--surface3); border-color: var(--border); color: var(--muted); cursor: default; }
 
-        /* ── Staging panel ── */
-        .staging-add-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
-        }
-        .staging-add-bar .card-title { margin-bottom: 0; }
-        .btn-add-all {
-            background: var(--green);
-            color: #000;
-            font-weight: 700;
-            padding: 7px 18px;
-            border-radius: 50px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-family: var(--font);
-            white-space: nowrap;
-            transition: all 0.15s;
-        }
-        .btn-add-all:hover { background: #1ed760; }
-        .staging-empty {
-            color: var(--muted);
-            font-size: 0.85rem;
-            padding: 8px 0;
-        }
-
         .drag-handle {
             color: var(--muted);
             cursor: grab;
@@ -814,14 +786,6 @@
             <button class="btn-save" onclick="customSearch()" id="btn-custom-search">Zoek</button>
         </div>
         <div id="custom-search-results"></div>
-    </div>
-
-    <div class="card" id="staging-card" style="display:none">
-        <div class="staging-add-bar">
-            <div class="card-title" style="margin-bottom:0">Gegenereerde nummers <span id="staging-count" style="color:var(--text);text-transform:none;letter-spacing:0;font-size:0.88rem;font-weight:400"></span></div>
-            <button class="btn-add-all" onclick="addAllStaging()">Voeg alles toe</button>
-        </div>
-        <div id="staging-list" class="tracks" style="margin-bottom:0"></div>
     </div>
 
     <div class="or-divider">of plak zelf een lijst</div>
@@ -1350,177 +1314,15 @@ async function generateWithAI() {
             return;
         }
 
-        stagingIsAI = true;
-        stagingTracks = [];
-        _stagingPlayingIdx = null;
-        await searchAndStage(parsed);
+        // Gebruik bestaande parser + Spotify-zoekopdracht
+        document.getElementById('paste-input').value = content;
+        await parseAndSearch();
 
     } catch (e) {
         toast('AI genereren mislukt: ' + e.message, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Genereer met AI';
-    }
-}
-
-// ── Staging helpers ──
-
-async function searchAndStage(parsed) {
-    const card = document.getElementById('staging-card');
-    const list = document.getElementById('staging-list');
-    const countEl = document.getElementById('staging-count');
-
-    card.style.display = 'block';
-    list.innerHTML = '<div class="staging-empty">Zoeken op Spotify…</div>';
-    countEl.textContent = '';
-
-    let done = 0;
-    stagingTracks = [];
-
-    for (const entry of parsed) {
-        const track = await searchTrack(entry);
-        if (track) {
-            stagingTracks.push({ track, original: entry.original, added: false, fromAI: true });
-        }
-        done++;
-        countEl.textContent = `(${stagingTracks.length} / ${done} verwerkt)`;
-    }
-
-    renderStaging();
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function renderStaging() {
-    const list = document.getElementById('staging-list');
-    const countEl = document.getElementById('staging-count');
-
-    countEl.textContent = '(' + stagingTracks.length + ')';
-
-    if (!stagingTracks.length) {
-        list.innerHTML = '<div class="staging-empty">Geen nummers gevonden.</div>';
-        return;
-    }
-
-    list.innerHTML = stagingTracks.map(function(entry, i) {
-        const t       = entry.track;
-        const art     = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
-        const artists = t.artists.map(a => esc(a.name)).join(', ');
-        const dur     = fmtDur(t.duration_ms);
-        const playing = i === _stagingPlayingIdx;
-        const artHtml = art
-            ? '<img class="track-art" src="' + esc(art) + '" alt="">'
-            : '<div class="track-art">🎵</div>';
-        const previewCls = 'btn-preview' + (t.preview_url ? (playing ? ' playing' : '') : ' no-preview');
-        const previewClick = t.preview_url ? 'toggleStagingPreview(' + i + ')' : '';
-        const previewTitle = t.preview_url ? 'Preview' : 'Geen preview';
-        const previewIcon  = playing ? '⏸' : '▶';
-        const regenBtn = stagingIsAI
-            ? '<button class="btn-regen" data-staging-regen="' + i + '" onclick="regenStagingTrack(' + i + ')" title="Hergenereer via AI">↺</button>'
-            : '';
-        const addCls   = 'btn-add' + (entry.added ? ' added' : '');
-        const addLabel = entry.added ? '✓ Toegevoegd' : '+ Voeg toe';
-        const disabled = entry.added ? 'disabled' : '';
-        return '<div class="track' + (entry.added ? ' not-found' : '') + '">'
-            + '<span class="track-num">' + (i + 1) + '</span>'
-            + artHtml
-            + '<div class="track-info">'
-            +   '<div class="track-name">' + esc(t.name) + '</div>'
-            +   '<div class="track-artist">' + artists + '</div>'
-            + '</div>'
-            + '<span class="track-dur">' + dur + '</span>'
-            + '<button class="' + previewCls + '" data-staging-i="' + i + '" onclick="' + previewClick + '" title="' + previewTitle + '">' + previewIcon + '</button>'
-            + regenBtn
-            + '<button class="' + addCls + '" onclick="addStagingTrack(' + i + ')" ' + disabled + '>' + addLabel + '</button>'
-            + '</div>';
-    }).join('');
-}
-
-function addStagingTrack(i) {
-    const entry = stagingTracks[i];
-    if (!entry || entry.added) return;
-    foundTracks.push({ track: entry.track, original: entry.original });
-    stagingTracks[i] = { ...entry, added: true };
-    renderStaging();
-    renderResults();
-    document.getElementById('results-card').style.display = 'block';
-}
-
-function addAllStaging() {
-    let count = 0;
-    stagingTracks.forEach((entry, i) => {
-        if (!entry.added) {
-            foundTracks.push({ track: entry.track, original: entry.original });
-            stagingTracks[i] = { ...entry, added: true };
-            count++;
-        }
-    });
-    if (!count) { toast('Alle nummers zijn al toegevoegd.'); return; }
-    renderStaging();
-    renderResults();
-    document.getElementById('results-card').style.display = 'block';
-    toast(`✓ ${count} nummers toegevoegd`, 'success');
-}
-
-function toggleStagingPreview(i) {
-    const entry = stagingTracks[i];
-    if (!entry?.track?.preview_url) return;
-    if (_stagingPlayingIdx === i) {
-        _audio.pause();
-        _stagingPlayingIdx = null;
-    } else {
-        _audio.pause();
-        _playingIdx = null;
-        _audio.src = entry.track.preview_url;
-        _audio.play();
-        _stagingPlayingIdx = i;
-        _audio.onended = () => { _stagingPlayingIdx = null; renderStaging(); updatePreviewBtns(); };
-    }
-    renderStaging();
-    updatePreviewBtns();
-}
-
-async function regenStagingTrack(i) {
-    const entry = stagingTracks[i];
-    const t     = entry.track;
-    const btn   = document.querySelector(`[data-staging-regen="${i}"]`);
-    if (btn) { btn.disabled = true; btn.textContent = '…'; }
-
-    try {
-        const p = _lastGenParams;
-        const lines = ['Suggest ONE replacement song.'];
-        if (p?.genre)                  lines.push(`Genre: ${p.genre}`);
-        if (p?.yearFrom || p?.yearTo)  lines.push(`Year range: ${p.yearFrom || '1900'}–${p.yearTo || '2025'}`);
-        if (p?.theme)                  lines.push(`Mood/theme: ${p.theme}`);
-        if (p?.lang)                   lines.push(`Language: ${p.lang}`);
-        if (p?.tempo)                  lines.push(`Tempo: ${p.tempo}`);
-        if (p?.artist)                 lines.push(`In the style of: ${p.artist}`);
-        lines.push(`Do NOT suggest: "${t.name}" by ${t.artists[0]?.name || ''}`);
-        const others = stagingTracks.filter((_, j) => j !== i)
-            .map(e => `"${e.track.name}"`).join(', ');
-        if (others) lines.push(`Also avoid these already in the list: ${others}`);
-        lines.push('Return ONLY: Artist - Song Title');
-
-        const res = await fetch('https://text.pollinations.ai/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: lines.join('\n') }], seed: Math.floor(Math.random() * 99999) }),
-        });
-        if (!res.ok) throw new Error(`AI fout: ${res.status}`);
-        let content = await res.text();
-        try { const j = JSON.parse(content); content = j.choices?.[0]?.message?.content || content; } catch {}
-
-        const parsed = parseTracklist(content);
-        if (!parsed.length) throw new Error('AI gaf geen herkenbaar nummer terug');
-
-        const newTrack = await searchTrack(parsed[0]);
-        if (!newTrack) throw new Error('Nummer niet gevonden op Spotify');
-
-        stagingTracks[i] = { track: newTrack, original: entry.original, added: false, fromAI: true };
-        renderStaging();
-        toast(`✓ Vervangen door "${newTrack.name}"`, 'success');
-    } catch (e) {
-        toast('Hergenereren mislukt: ' + e.message, 'error');
-        if (btn) { btn.disabled = false; btn.textContent = '↺'; }
     }
 }
 
@@ -1742,6 +1544,8 @@ function renderResults(notFound = []) {
             </div>
             ${isDup ? '<span class="track-dup-badge">dubbel</span>' : ''}
             <span class="track-dur">${dur}</span>
+            <button class="btn-preview${t.preview_url ? '' : ' no-preview'}" data-i="${i}" onclick="${t.preview_url ? `togglePreview(${i})` : ''}" title="${t.preview_url ? 'Preview' : 'Geen preview'}">▶</button>
+            <button class="btn-regen" data-regen="${i}" onclick="regenTrack(${i})" title="Hergenereer via AI">↺</button>
             <button class="btn-swap" onclick="openSwap(${i})" title="Wissel nummer">↩</button>
             <button class="btn-remove" data-i="${i}" onclick="removeTrack(this.dataset.i)" title="Verwijder">✕</button>
         </div>
@@ -1759,50 +1563,61 @@ function renderResults(notFound = []) {
 
 let _customResults = [];
 
-// ── Staging panel ──
-
-let stagingTracks = []; // {track, original, added, fromAI}
-let stagingIsAI = false;
-let _stagingPlayingIdx = null;
-
 async function customSearch() {
     const q = document.getElementById('custom-search-input').value.trim();
     if (!q) return;
 
     const btn = document.getElementById('btn-custom-search');
+    const out = document.getElementById('custom-search-results');
     btn.disabled = true;
     btn.textContent = 'Zoeken…';
+    out.innerHTML = '';
 
     try {
         const data = await api(`/search?q=${encodeURIComponent(q)}&type=track&limit=10`);
         _customResults = (data.tracks?.items || []).filter(Boolean);
 
         if (!_customResults.length) {
-            toast('Geen resultaten gevonden.', 'error');
+            out.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:4px 0">Geen resultaten gevonden.</div>';
             return;
         }
 
         const addedUris = new Set(foundTracks.map(e => e.track.uri));
-        stagingIsAI = false;
-        stagingTracks = _customResults.map(t => ({
-            track: t,
-            original: `${t.artists[0]?.name || ''} - ${t.name}`,
-            added: addedUris.has(t.uri),
-            fromAI: false,
-        }));
-        _stagingPlayingIdx = null;
 
-        const card = document.getElementById('staging-card');
-        card.style.display = 'block';
-        renderStaging();
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        out.innerHTML = _customResults.map((t, j) => {
+            const art     = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
+            const artists = t.artists.map(a => esc(a.name)).join(', ');
+            const added   = addedUris.has(t.uri);
+            return `<div class="search-result" id="sr-${j}">
+                ${art ? `<img src="${esc(art)}" alt="">` : '<div class="search-result-img">🎵</div>'}
+                <div class="search-result-info">
+                    <div class="search-result-name">${esc(t.name)}</div>
+                    <div class="search-result-artist">${artists}</div>
+                </div>
+                <button class="btn-add${added ? ' added' : ''}" id="btn-add-${j}" onclick="addCustomTrack(${j})" ${added ? 'disabled' : ''}>
+                    ${added ? '✓ Toegevoegd' : '+ Voeg toe'}
+                </button>
+            </div>`;
+        }).join('');
 
     } catch (e) {
-        toast(`Fout: ${e.message}`, 'error');
+        out.innerHTML = `<div style="color:#e06060;font-size:0.85rem">Fout: ${esc(e.message)}</div>`;
     } finally {
         btn.disabled = false;
         btn.textContent = 'Zoek';
     }
+}
+
+function addCustomTrack(j) {
+    const track = _customResults[j];
+    if (!track) return;
+    foundTracks.push({ track, original: `${track.artists[0]?.name || ''} - ${track.name}` });
+
+    const btn = document.getElementById(`btn-add-${j}`);
+    if (btn) { btn.textContent = '✓ Toegevoegd'; btn.classList.add('added'); btn.disabled = true; }
+
+    renderResults();
+    document.getElementById('results-card').style.display = 'block';
 }
 
 let _swapCache = {};
