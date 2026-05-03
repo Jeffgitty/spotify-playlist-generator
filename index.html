@@ -748,6 +748,15 @@
                         <option value="fast and energetic">Snel</option>
                     </select>
                 </div>
+                <div class="field">
+                    <label>Bekendheid</label>
+                    <select id="gen-discovery">
+                        <option value="hits">Hits</option>
+                        <option value="mix">Mix</option>
+                        <option value="deep">Deep cuts</option>
+                        <option value="obscure">Obscuur</option>
+                    </select>
+                </div>
                 <div class="field" style="grid-column: span 2">
                     <label>Jaartal</label>
                     <div class="year-range">
@@ -1307,8 +1316,9 @@ function buildConstraintPrompt(params, count, avoidList) {
     var theme    = params.theme    || '';
     var artistBy = params.artistBy || '';
     var artist   = params.artist   || '';
-    var lang     = params.lang     || '';
-    var tempo    = params.tempo    || '';
+    var lang      = params.lang      || '';
+    var tempo     = params.tempo     || '';
+    var discovery = params.discovery || '';
 
     var system = 'You are a music expert and playlist curator. '
         + 'Follow all requirements precisely. '
@@ -1339,6 +1349,13 @@ function buildConstraintPrompt(params, count, avoidList) {
     if (theme)               soft.push('Mood/theme: ' + theme);
     if (artist && !artistBy) soft.push('In the style of: ' + artist);
     if (tempo)               soft.push('Tempo: ' + tempo);
+    var discoveryMap = {
+        hits:    'Prefer well-known, popular hit songs.',
+        mix:     'Balance popular tracks with lesser-known songs.',
+        deep:    'Prefer deep cuts, album tracks, non-singles.',
+        obscure: 'Prefer obscure, niche, cult tracks while remaining realistic and available on Spotify.',
+    };
+    if (discoveryMap[discovery]) soft.push('Popularity: ' + discoveryMap[discovery]);
 
     var lines = ['Generate a playlist of exactly ' + count + ' real songs.'];
     if (hard.length) {
@@ -1381,6 +1398,13 @@ function buildRegenPrompt(params, avoidTrack, avoidList) {
     if (p.lang)                  lines.push('Language: primarily ' + p.lang);
     if (p.theme)                 lines.push('Mood/theme: ' + p.theme);
     if (p.tempo)                 lines.push('Tempo: ' + p.tempo);
+    var _discoveryMap = {
+        hits:    'Prefer well-known, popular hit songs.',
+        mix:     'Balance popular tracks with lesser-known songs.',
+        deep:    'Prefer deep cuts, album tracks, non-singles.',
+        obscure: 'Prefer obscure, niche, cult tracks while remaining realistic and available on Spotify.',
+    };
+    if (_discoveryMap[p.discovery]) lines.push('Popularity: ' + _discoveryMap[p.discovery]);
     if (p.artistBy)              lines.push('Artist: must be by "' + p.artistBy + '"');
     else if (p.artist)           lines.push('In the style of: ' + p.artist);
     lines.push('Do NOT suggest: ' + avoidTrack);
@@ -1401,10 +1425,11 @@ async function generateWithAI() {
     const artistBy  = document.getElementById('gen-artist-by').value.trim();
     const artist    = document.getElementById('gen-artist').value.trim();
     const lang      = document.getElementById('gen-lang').value;
-    const tempo     = document.getElementById('gen-tempo').value;
-    const count     = Math.min(100, Math.max(1, parseInt(document.getElementById('gen-count').value) || 20));
+    const tempo      = document.getElementById('gen-tempo').value;
+    const discovery  = document.getElementById('gen-discovery').value;
+    const count      = Math.min(100, Math.max(1, parseInt(document.getElementById('gen-count').value) || 20));
 
-    const params = { genre, yearFrom, yearTo, theme, artistBy, artist, lang, tempo };
+    const params = { genre, yearFrom, yearTo, theme, artistBy, artist, lang, tempo, discovery };
     _lastGenParams = params;
 
     // Advisory conflict check — toast first warning if any, then proceed regardless
