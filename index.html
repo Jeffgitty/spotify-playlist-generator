@@ -1230,19 +1230,9 @@ async function regenTrack(i) {
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
 
     try {
-        const p = _lastGenParams;
-        const lines = ['Suggest ONE replacement song.'];
-        if (p?.genre)                  lines.push(`Genre: ${p.genre}`);
-        if (p?.yearFrom || p?.yearTo)  lines.push(`Year range: ${p.yearFrom || '1900'}–${p.yearTo || '2025'}`);
-        if (p?.theme)                  lines.push(`Mood/theme: ${p.theme}`);
-        if (p?.lang)                   lines.push(`Language: ${p.lang}`);
-        if (p?.tempo)                  lines.push(`Tempo: ${p.tempo}`);
-        if (p?.artist)                 lines.push(`In the style of: ${p.artist}`);
-        lines.push(`Do NOT suggest: "${t.name}" by ${t.artists[0]?.name || ''}`);
-        const others = foundTracks.filter((_, j) => j !== i)
-            .map(e => `"${e.track.name}"`).join(', ');
-        if (others) lines.push(`Also avoid these already in the list: ${others}`);
-        lines.push('Return ONLY: Artist - Song Title');
+        const p          = _lastGenParams;
+        const avoidTrack = `"${t.name}" by ${t.artists[0]?.name || ''}`;
+        const others     = foundTracks.filter((_, j) => j !== i).map(e => `"${e.track.name}"`);
 
         const _ctrl1 = new AbortController();
         const _tid1  = setTimeout(() => _ctrl1.abort(), 30000);
@@ -1251,7 +1241,7 @@ async function regenTrack(i) {
             res = await fetch('https://text.pollinations.ai/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: lines.join('\n') }], seed: Math.floor(Math.random() * 99999) }),
+                body: JSON.stringify({ model: 'openai', messages: buildRegenPrompt(p, avoidTrack, others), seed: Math.floor(Math.random() * 99999) }),
                 signal: _ctrl1.signal,
             });
         } finally { clearTimeout(_tid1); }
@@ -1276,6 +1266,133 @@ async function regenTrack(i) {
 
 // ── AI Generator (Pollinations.ai) ──
 
+// Returns array of advisory warning strings — never used to block generation
+function detectConflicts(params) {
+    var warnings = [];
+    var genre    = params.genre    || '';
+    var lang     = (params.lang    || '').toLowerCase();
+    var artistBy = params.artistBy || '';
+    var artist   = params.artist   || '';
+    var count    = params.count    || 20;
+    var yFrom    = parseInt(params.yearFrom) || 0;
+    var yTo      = parseInt(params.yearTo)   || 9999;
+
+    if (params.yearFrom && params.yearTo && yFrom > yTo)
+        warnings.push('Beginjaar (' + params.yearFrom + ') ligt na eindjaar (' + params.yearTo + ').');
+
+    // Known genres that barely existed before a certain year
+    var genreMinYear = { 'hip-hop': 1973, 'electronic': 1970, 'dance': 1975 };
+    if (genre && genreMinYear[genre] && yTo < genreMinYear[genre])
+        warnings.push('"' + genre + '" bestond nauwelijks vóór ' + genreMinYear[genre] + '.');
+
+    var isDutch = (lang === 'dutch' || lang === 'nederlands');
+    if (isDutch && genre === 'hip-hop' && yTo < 1990)
+        warnings.push('Nederlandstalige hip-hop bestond nauwelijks vóór 1990.');
+
+    if (params.yearFrom && params.yearTo && (yTo - yFrom) < 3 && count > 10)
+        warnings.push('Een range van ' + (yTo - yFrom) + ' jaar maakt het moeilijk ' + count + ' unieke nummers te vinden.');
+
+    if (artistBy && artist)
+        warnings.push('"Artiest" en "In de stijl van" zijn allebei ingevuld — dit kan conflicteren.');
+
+    return warnings;
+}
+
+// Builds the messages[] array for a full playlist generation request
+function buildConstraintPrompt(params, count, avoidList) {
+    avoidList = avoidList || [];
+    var genre    = params.genre    || '';
+    var yearFrom = params.yearFrom || '';
+    var yearTo   = params.yearTo   || '';
+    var theme    = params.theme    || '';
+    var artistBy = params.artistBy || '';
+    var artist   = params.artist   || '';
+    var lang     = params.lang     || '';
+    var tempo    = params.tempo    || '';
+
+    var system = 'You are a music expert and playlist curator. '
+        + 'Follow all requirements precisely. '
+        + 'Only suggest real songs that exist on Spotify. '
+        + 'Prioritize well-known, easily findable tracks.';
+
+    var hard = [], soft = [], nots = [];
+
+    if (genre) {
+        hard.push('Genre: ' + genre + ' (including related subgenres of ' + genre + ')');
+        nots.push('Avoid genres completely unrelated to ' + genre);
+    }
+    if (yearFrom || yearTo) {
+        var yf = yearFrom || '1900';
+        var yt = yearTo   || new Date().getFullYear().toString();
+        hard.push('Release year: songs must be released between ' + yf + ' and ' + yt);
+        nots.push('Do not include songs released before ' + yf + ' or after ' + yt);
+    }
+    if (lang) {
+        // "primarily" allows occasional instrumentals / interludes without breaking the constraint
+        hard.push('Language: songs should primarily be in ' + lang + ' (most lyrics in ' + lang + ')');
+        nots.push('Avoid songs where ' + lang + ' is not the primary language');
+    }
+    if (artistBy) {
+        hard.push('Artist: only include songs performed by "' + artistBy + '"');
+        nots.push('Do not include songs by other artists');
+    }
+    if (theme)               soft.push('Mood/theme: ' + theme);
+    if (artist && !artistBy) soft.push('In the style of: ' + artist);
+    if (tempo)               soft.push('Tempo: ' + tempo);
+
+    var lines = ['Generate a playlist of exactly ' + count + ' real songs.'];
+    if (hard.length) {
+        lines.push('\nREQUIREMENTS (follow strictly):');
+        hard.forEach(function(h) { lines.push('- ' + h); });
+    }
+    if (soft.length) {
+        lines.push('\nPREFERENCES (best effort):');
+        soft.forEach(function(s) { lines.push('- ' + s); });
+    }
+    if (nots.length) {
+        lines.push('\nAVOID:');
+        nots.forEach(function(n) { lines.push('- ' + n); });
+    }
+    lines.push('- Do not repeat the same artist more than twice');
+    lines.push('- Only include real songs that exist on Spotify');
+    if (avoidList.length)
+        lines.push('- Do not include: ' + avoidList.join(', '));
+    lines.push('\nReturn ONLY a numbered list, nothing else:');
+    lines.push('1. Artist Name - Song Title');
+    lines.push('2. Artist Name - Song Title');
+
+    return [
+        { role: 'system', content: system },
+        { role: 'user',   content: lines.join('\n') }
+    ];
+}
+
+// Builds the messages[] array for a single-track regen request
+function buildRegenPrompt(params, avoidTrack, avoidList) {
+    avoidList = avoidList || [];
+    var p = params || {};
+
+    var system = 'You are a music expert. Suggest exactly one real song that fits the requirements. '
+        + 'Only suggest songs that exist on Spotify.';
+
+    var lines = ['Suggest ONE replacement song.'];
+    if (p.genre)                 lines.push('Genre: ' + p.genre + ' (including subgenres)');
+    if (p.yearFrom || p.yearTo)  lines.push('Year range: ' + (p.yearFrom || '1900') + '–' + (p.yearTo || new Date().getFullYear()));
+    if (p.lang)                  lines.push('Language: primarily ' + p.lang);
+    if (p.theme)                 lines.push('Mood/theme: ' + p.theme);
+    if (p.tempo)                 lines.push('Tempo: ' + p.tempo);
+    if (p.artistBy)              lines.push('Artist: must be by "' + p.artistBy + '"');
+    else if (p.artist)           lines.push('In the style of: ' + p.artist);
+    lines.push('Do NOT suggest: ' + avoidTrack);
+    if (avoidList.length)        lines.push('Also avoid: ' + avoidList.join(', '));
+    lines.push('Return ONLY: Artist - Song Title');
+
+    return [
+        { role: 'system', content: system },
+        { role: 'user',   content: lines.join('\n') }
+    ];
+}
+
 async function generateWithAI() {
     const genre     = document.getElementById('gen-genre').value;
     const yearFrom  = document.getElementById('gen-year-from').value.trim();
@@ -1287,33 +1404,21 @@ async function generateWithAI() {
     const tempo     = document.getElementById('gen-tempo').value;
     const count     = Math.min(100, Math.max(1, parseInt(document.getElementById('gen-count').value) || 20));
 
-    _lastGenParams = { genre, yearFrom, yearTo, theme, artistBy, artist, lang, tempo };
+    const params = { genre, yearFrom, yearTo, theme, artistBy, artist, lang, tempo };
+    _lastGenParams = params;
 
-    const lines = [];
-    lines.push(`Generate a playlist of exactly ${count} songs.`);
-    if (genre)              lines.push(`Genre: ${genre}`);
-    if (yearFrom && yearTo) lines.push(`Year range: ${yearFrom}–${yearTo}`);
-    else if (yearFrom)      lines.push(`From year: ${yearFrom}`);
-    else if (yearTo)        lines.push(`Up to year: ${yearTo}`);
-    if (theme)              lines.push(`Mood/theme: ${theme}`);
-    if (artistBy)           lines.push(`Only include songs by the artist: ${artistBy}`);
-    if (artist)             lines.push(`In the style of: ${artist}`);
-    if (lang)               lines.push(`Language: songs must be in ${lang}`);
-    if (tempo)              lines.push(`Tempo: ${tempo}`);
-    lines.push('');
-    lines.push('Return ONLY a numbered list in this exact format, nothing else:');
-    lines.push('1. Artist Name - Song Title');
-    lines.push('2. Artist Name - Song Title');
-
-    const prompt = lines.join('\n');
+    // Advisory conflict check — toast first warning if any, then proceed regardless
+    const warnings = detectConflicts(Object.assign({ count }, params));
+    if (warnings.length) toast(warnings[0]);
 
     const btn = document.getElementById('btn-generate');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>AI genereert lijst…';
 
-    try {
-        const _ctrl2 = new AbortController();
-        const _tid2  = setTimeout(() => _ctrl2.abort(), 30000);
+    // Inner helper: one fetch+parse cycle with its own AbortController
+    const doFetch = async () => {
+        const _ctrl = new AbortController();
+        const _tid  = setTimeout(() => _ctrl.abort(), 30000);
         let res;
         try {
             res = await fetch('https://text.pollinations.ai/', {
@@ -1321,28 +1426,36 @@ async function generateWithAI() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: 'openai',
-                    messages: [{ role: 'user', content: prompt }],
+                    messages: buildConstraintPrompt(params, count),
                     seed: Math.floor(Math.random() * 99999),
                 }),
-                signal: _ctrl2.signal,
+                signal: _ctrl.signal,
             });
-        } finally { clearTimeout(_tid2); }
-
+        } finally { clearTimeout(_tid); }
         if (!res.ok) throw new Error(`AI fout: ${res.status}`);
-
         const raw = await res.text();
-
         // Pollinations kan plain text of OpenAI JSON teruggeven
         let content = raw;
-        try {
-            const json = JSON.parse(raw);
-            content = json.choices?.[0]?.message?.content || raw;
-        } catch { /* plain text */ }
+        try { const json = JSON.parse(raw); content = json.choices?.[0]?.message?.content || raw; } catch { /* plain text */ }
+        return content;
+    };
 
+    try {
+        let content = await doFetch();
         if (!content.trim()) throw new Error('AI gaf een lege reactie');
 
+        let parsed = parseTracklist(content);
+
+        // Eénmalige retry als minder dan 70% van gevraagd aantal werd teruggegeven
+        if (parsed.length < Math.ceil(count * 0.7)) {
+            try {
+                const content2 = await doFetch();
+                const parsed2  = parseTracklist(content2);
+                if (parsed2.length > parsed.length) parsed = parsed2;
+            } catch { /* gebruik eerste resultaat */ }
+        }
+
         // Controleer of er herkenbare nummers in zitten
-        const parsed = parseTracklist(content);
         if (parsed.length < 2) {
             toast('AI kon geen lijst maken voor deze combinatie. Probeer andere instellingen.', 'error');
             return;
@@ -1954,20 +2067,9 @@ async function stagingRegen(i) {
     var btn = document.querySelector('[data-sregen="' + i + '"]');
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
     try {
-        var p = _lastGenParams;
-        var prompt = 'Suggest ONE replacement song.';
-        if (p) {
-            if (p.genre)               prompt += '\nGenre: ' + p.genre;
-            if (p.yearFrom || p.yearTo) prompt += '\nYear range: ' + (p.yearFrom || '1900') + '-' + (p.yearTo || '2025');
-            if (p.theme)               prompt += '\nMood/theme: ' + p.theme;
-            if (p.lang)                prompt += '\nLanguage: ' + p.lang;
-            if (p.tempo)               prompt += '\nTempo: ' + p.tempo;
-            if (p.artist)              prompt += '\nIn the style of: ' + p.artist;
-        }
-        prompt += '\nDo NOT suggest: "' + t.name + '" by ' + (t.artists[0] ? t.artists[0].name : '');
-        var others = stagingTracks.filter(function(e, j) { return j !== i; }).map(function(e) { return e.track.name; });
-        if (others.length) prompt += '\nAlso avoid: ' + others.join(', ');
-        prompt += '\nReturn ONLY: Artist - Song Title';
+        var p          = _lastGenParams;
+        var avoidTrack = '"' + t.name + '" by ' + (t.artists[0] ? t.artists[0].name : '');
+        var others     = stagingTracks.filter(function(e, j) { return j !== i; }).map(function(e) { return '"' + e.track.name + '"'; });
         var _ctrl3 = new AbortController();
         var _tid3  = setTimeout(function() { _ctrl3.abort(); }, 30000);
         var res;
@@ -1975,7 +2077,7 @@ async function stagingRegen(i) {
             res = await fetch('https://text.pollinations.ai/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: prompt }], seed: Math.floor(Math.random() * 99999) }),
+                body: JSON.stringify({ model: 'openai', messages: buildRegenPrompt(p, avoidTrack, others), seed: Math.floor(Math.random() * 99999) }),
                 signal: _ctrl3.signal,
             });
         } finally { clearTimeout(_tid3); }
